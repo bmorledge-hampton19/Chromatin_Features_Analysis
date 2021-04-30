@@ -18,7 +18,7 @@ class MutationData:
 
         # Assign variables
         self.chromosome = choppedUpLine[0] # The chromosome that houses the mutation.
-        self.position = int(choppedUpLine[1]) # The position of the mutation in its chromosome. (0 base)
+        self.position = float(choppedUpLine[1]) # The position of the mutation in its chromosome. (0 base)
         self.strand = choppedUpLine[5] # Either '+' or '-' depending on which strand houses the mutation.
 
         # Make sure the mutation is in a valid chromosome.
@@ -182,9 +182,16 @@ class CountsFileGenerator:
         bindingMotifRangeStart = -bindingMotifRangeEnd
         if bindingMotifLength % 2 == 1: bindingMotifRangeEnd += 1
 
+        self.intPositions = list()
+        self.halfPositions = list()
         for i in range(bindingMotifRangeStart, bindingMotifRangeEnd):
             self.bindingMotifStrandMutationCounts[i] = 0
             self.reverseMotifStrandMutationCounts[i] = 0
+            self.intPositions.append(i)
+            if i < bindingMotifRangeEnd:
+                self.bindingMotifStrandMutationCounts[i+0.5] = 0
+                self.reverseMotifStrandMutationCounts[i+0.5] = 0
+                self.halfPositions.append(i+0.5)
 
         # The core loop goes through each binding motif one at a time and checks mutation positions against it until 
         # one exceeds its rightmost position or is on a different chromosome (or mutations are exhausted).  
@@ -213,17 +220,34 @@ class CountsFileGenerator:
 
     def writeResults(self):
 
-        if self.bindingMotifsMutationCountsFilePath is not None:
-            # Write the results to the output file.
-            with open(self.bindingMotifsMutationCountsFilePath,'w') as BMMutationCountsFile:
-                
-                # Write the headers to the file.
-                BMMutationCountsFile.write('\t'.join(("Motif_Position", "Motif_Strand_Mutation_Counts", "Reverse_Strand_Mutation_Counts")) + '\n')
+        # Write the results to the output file.
+        with open(self.bindingMotifsMutationCountsFilePath,'w') as BMMutationCountsFile:
+            
+            # Write the headers to the file.
+            BMMutationCountsFile.write('\t'.join(("Motif_Position", "Motif_Strand_Mutation_Counts", "Reverse_Strand_Mutation_Counts")) + '\n')
 
-                # Write the counts.
-                for pos in self.bindingMotifStrandMutationCounts:
-                    BMMutationCountsFile.write('\t'.join((str(pos), str(self.bindingMotifStrandMutationCounts[pos]), 
-                                                          str(self.reverseMotifStrandMutationCounts[pos]))) + '\n')
+            # Determine whether or not to include just half positions, just int positions, or all positions in the final output.
+            motifPosRange = self.intPositions
+            hasHalfPositions = False
+
+            # Are there half position counts?
+            for i in self.halfPositions:
+                if self.bindingMotifStrandMutationCounts[i] > 0 or self.reverseMotifStrandMutationCounts[i] > 0:
+                    motifPosRange = self.halfPositions
+                    hasHalfPositions = True
+                    break
+
+            # If there were half position counts, are there also int position counts?
+            if hasHalfPositions:
+                for i in self.intPositions:
+                    if self.bindingMotifStrandMutationCounts[i] > 0 or self.reverseMotifStrandMutationCounts[i] > 0:
+                        motifPosRange = self.bindingMotifStrandMutationCounts.keys()
+                        break
+
+            # Write the counts.
+            for pos in motifPosRange:
+                BMMutationCountsFile.write('\t'.join((str(pos), str(self.bindingMotifStrandMutationCounts[pos]), 
+                                                        str(self.reverseMotifStrandMutationCounts[pos]))) + '\n')
 
 
 # Main functionality starts here.
