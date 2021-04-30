@@ -32,7 +32,7 @@ def callBindingMotifs(peakRegionFilePaths: List[str], genomeFilePath, bindingMot
         motifCentersFilePath = peakRegionFilePath.rsplit('.',1)[0]
         if motifCentersFilePath.endswith("peak_regions"):
             motifCentersFilePath = motifCentersFilePath.rsplit("_peak_regions",1)[0] 
-        motifCentersFilePath += "_binding_motifs.bed"
+        motifCentersFilePath += "_" + os.path.basename(bindingMotifFilePath).rsplit('.',1)[0] + "_binding_motifs.bed"
 
         # Generate a file path for a corresponding fasta file to convert the bed file to.
         peakRegionSequencesFilePath = peakRegionFilePath.rsplit('.',1)[0] + ".fa"
