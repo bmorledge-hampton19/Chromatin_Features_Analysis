@@ -84,7 +84,8 @@ for (chromosome in unique(binnedCountsTable$Chromosome)) {
 }
 
 
-# Create a graph for each chromosome that uses the log ratio between the two data sets.
+# Create a graph for each chromosome that uses the log ratio between the two data sets and
+# colors based on majority chromatin domain.
 for (chromosome in unique(binnedCountsTable$Chromosome)) {
 
   # Skip those funky chromosome fragments...
