@@ -3,10 +3,10 @@ from typing import List
 import os
 
 
-# This function takes a bed file of chromatin color domains and assigns a color to each bin, defaulting to white if no domain covers that area.
+# This function takes a bed file of chromatin color domains and assigns a color to each bin, defaulting to gray if no domain covers that area.
 # Bins are colored based on the majority color present in that region.
 # NOTE: input files must be sorted by chromosome ID (alphabetically) and feature start position (numerically).
-def binAcrossGenome(colorDomainsFilePath, chromSizesFilePath, binSize):
+def binAcrossGenome(colorDomainsFilePath, chromSizesFilePath, binSize, minimumCoverage = 0.5):
 
     # Retrieve information on the sizes of the chromosomes being used.
     chromSizes = dict()
@@ -44,8 +44,10 @@ def binAcrossGenome(colorDomainsFilePath, chromSizesFilePath, binSize):
 
             # Remain in the bin until the chromosomes don't match AND all bins have been initialized.
             while (domainChrom is not None and domainChrom == binChrom) or binStart < chromSizes[binChrom]:
+                
+                # Initialize the dictionary and set the minimum coverage level as GRAY.
                 encompassedBasesByColor = dict()
-                encompassedBasesByColor["WHITE"] = 0
+                encompassedBasesByColor["GRAY"] = binSize*minimumCoverage
 
                 # Are we within the current bin?  If so, check to see how much of the bin is encompassed.
                 while domainChrom is not None and domainChrom == binChrom and domainStartPos < binStart + binSize:
@@ -75,7 +77,7 @@ def binAcrossGenome(colorDomainsFilePath, chromSizesFilePath, binSize):
                 # Assign the majority color to the bin.
                 maxCoverage = max(encompassedBasesByColor.values())
                 maxColors = [key for key, value in encompassedBasesByColor.items() if value == maxCoverage]
-                if len(maxColors) > 1: bins[binChrom][binStart] = "WHITE"
+                if len(maxColors) > 1: bins[binChrom][binStart] = "GRAY"
                 else: bins[binChrom][binStart] = maxColors[0]
 
                 # Increment the binStart.
