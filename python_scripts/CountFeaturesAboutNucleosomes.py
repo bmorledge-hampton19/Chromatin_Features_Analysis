@@ -1,10 +1,12 @@
-# This script takes a file of H1 midpoints and nucleosome dyad centers and determines the 
-# density of H1 proteins within a 100 bp radius of the dyad centers.
+# This script takes a file of some genome feature and nucleosome dyad centers and determines the 
+# density of those features within a 100 bp radius of the dyad centers.
+import os
 from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import getDataDirectory
 from mypyhelper.CountThisInThat.InputDataStructures import EncompassingData
 from mypyhelper.CountThisInThat.Counter import ThisInThatCounter
 from mypyhelper.CountThisInThat.CounterOutputDataHandler import CounterOutputDataHandler
 from mutperiodpy.Tkinter_scripts.TkinterDialog import TkinterDialog
+from typing import List
 
 
 class NucleosomeData(EncompassingData):
@@ -17,28 +19,34 @@ class NucleosomeData(EncompassingData):
 class H1DensityCounter(ThisInThatCounter):
 
     def setUpOutputDataHandler(self):
-        self.outputDataHandler = CounterOutputDataHandler()
+        self.outputDataHandler = CounterOutputDataHandler(trackAllEncompassing=True)
         self.outputDataHandler.addEncompassingFeatureStratifier(outputName = "Nucleosome")
-        self.outputDataHandler.addPlaceholderStratifier("H1_Counts")
+        self.outputDataHandler.addPlaceholderStratifier("Feature_Counts")
 
     def constructEncompassingFeature(self, line) -> NucleosomeData:
         return NucleosomeData(line, self.acceptableChromosomes)
 
 
-def getNucleosomeH1Density(h1CentersFilePath, nucleosomePosFilePath, outputFilePath, searchRadius = 100):
+def getNucleosomeH1Density(genomeFeaturesFilePaths: List[str], nucleosomePosFilePath, searchRadius = 100):
 
-    counter = H1DensityCounter(h1CentersFilePath, nucleosomePosFilePath, outputFilePath, encompassingFeatureExtraRadius = searchRadius)
-    counter.count()
-    counter.writeResults((None,{None:"Proximal_H1_Count"}))
+    for genomeFeaturesFilePath in genomeFeaturesFilePaths:
+
+        print('\n' + "Working in",os.path.basename(genomeFeaturesFilePath))
+
+        outputFilePath = genomeFeaturesFilePath.rsplit('.',1)[0] + "_nucleosome_stratification.tsv"
+
+        counter = H1DensityCounter(genomeFeaturesFilePath, nucleosomePosFilePath, outputFilePath, 
+                                encompassingFeatureExtraRadius = searchRadius)
+        counter.count()
+        counter.writeResults((None,{None:"Feature_Counts"}))
 
 
 def main():
 
     # Create the Tkinter UI
     dialog = TkinterDialog(workingDirectory=getDataDirectory())
-    dialog.createFileSelector("H1 centers:",0,("Bed Files",".bed"))    
+    dialog.createMultipleFileSelector("Genome Feature Positions Files:",0,"context_mutations.bed",("Bed Files",".bed"))    
     dialog.createFileSelector("Nucleosome Dyad Center Positions:",1,("Bed Files",".bed"))
-    dialog.createFileSelector("Output File:",2,("TSV Files",".tsv"), newFile = True)
 
     # Run the UI
     dialog.mainloop()
@@ -46,8 +54,7 @@ def main():
     # If no input was received (i.e. the UI was terminated prematurely), then quit!
     if dialog.selections is None: quit()
 
-    getNucleosomeH1Density(dialog.selections.getIndividualFilePaths()[0], dialog.selections.getIndividualFilePaths()[1],
-                           dialog.selections.getIndividualFilePaths()[2])
+    getNucleosomeH1Density(dialog.selections.getFilePathGroups()[0], dialog.selections.getIndividualFilePaths()[0])
 
 
 if __name__ == "__main__": main()
