@@ -6,7 +6,7 @@ import os
 # This function normalizes one or more raw counts files.
 # If "headers" is true, the first line in the files is not used during normalization, and 
 # the first line from the raw file is preserved in the normalized output file.
-# "columnsToNormalize" describes which columns are normalized across the two files.
+# "columnsToNormalize" describes which columns are normalized across the two files (0-based).
 # All other columns are preserved in the state present in the raw counts file.
 def normalizeByBackground(rawCountsFilePaths: str, backgroundCountsFilePath, headers = True, columnsToNormalize = (1,2)):
 
