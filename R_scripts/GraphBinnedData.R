@@ -18,7 +18,7 @@ binnedChromatinDomainColorsFilePath = choose.files(multi = FALSE)
 binnedChromatinDomainColorsTable = fread(binnedChromatinDomainColorsFilePath)
 binnedCountsTable[,Majority_Domain_Color := binnedChromatinDomainColorsTable$Domain_Color]
 
-# Add in a complementary data set.
+# Add in a complementary (background) data set.
 compBinCountsFilePath = choose.files(multi = FALSE)
 compBinCountsTable = fread(compBinCountsFilePath)
 compBinCountsDataName = strsplit(basename(compBinCountsFilePath),'.', fixed = T)[[1]][1]
@@ -26,6 +26,7 @@ compBinCountsDataName = strsplit(basename(compBinCountsFilePath),'.', fixed = T)
 compBinCountsTable[,Bin_Start := vapply(strsplit(`Bin_Start-End`, '-'),
                                        function(x) as.integer(x[1]), FUN.VALUE = integer(1))]
 
+compBinCountsTable[Feature_Counts == 0, Feature_Counts := 1]# Pseudo-counts!
 compBinCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts) * 10^6]
 
 # Create a log ratio column in the main counts file using the complementary data set.
@@ -100,3 +101,43 @@ for (chromosome in unique(binnedCountsTable$Chromosome)) {
           main = paste(comparisonTitle, chromosome))
 
 }
+
+title = "PLACEHOLDER TITLE"
+yAxisLabel = "Counts Per Million Log Ratio"
+ylim = NULL
+
+# Get the median for each of the color domains.
+colorLogRatioMedians = binnedCountsTable[Majority_Domain_Color != "GRAY", .(Median = median(Log_Ratio)),
+                                         Majority_Domain_Color]
+
+# Plot as scatter.
+ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY"],
+       aes(Majority_Domain_Color, Log_Ratio, color = Majority_Domain_Color)) +
+  scale_color_manual(name = "Medians",
+                     labels = setNames(round(colorLogRatioMedians$Median,4),
+                                       colorLogRatioMedians$Majority_Domain_Color),
+                     values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
+                                "RED" = "red", "YELLOW" = "gold")) +
+  geom_jitter(width = 0.2, shape = 1, size = 2) +
+  stat_summary(fun = median, geom = "crossbar", width = 0.5, fatten = 2, colour = "purple") +
+  labs(title = title, x = xAxislabel, y = yAxisLabel) +
+  coord_cartesian(ylim = ylim) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
+        axis.text.x = element_text(size = 15), axis.title.x = element_blank(),
+        legend.text = element_text(size = 12), legend.title = element_text(size = 14))
+
+# Plot as boxes (without outliers)
+ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY"],
+       aes(Majority_Domain_Color, Log_Ratio, color = Majority_Domain_Color)) +
+  geom_boxplot(outlier.shape = NA) +
+  scale_color_manual(name = "Medians",
+                     labels = setNames(round(colorLogRatioMedians$Median,4),
+                                       colorLogRatioMedians$Majority_Domain_Color),
+                     values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
+                                "RED" = "red", "YELLOW" = "gold")) +
+  labs(title = title, x = xAxislabel, y = yAxisLabel) +
+  coord_cartesian(ylim = ylim) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
+        axis.text.x = element_text(size = 15), axis.title.x = element_blank(),
+        legend.text = element_text(size = 12), legend.title = element_text(size = 14))
+

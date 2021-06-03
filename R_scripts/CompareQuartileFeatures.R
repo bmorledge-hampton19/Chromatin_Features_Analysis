@@ -28,11 +28,12 @@ featureCountsTable[Nucleosome %in% lowerQuartileTable$Nucleosome, Quartile := "L
 title = "PLACEHOLDER TITLE"
 xAxislabel = "Quartile_Range"
 yAxisLabel = "Feature_Counts"
+ylim = NULL
 # Graph the data
 ggplot(featureCountsTable[!is.na(Quartile)], aes(Quartile, Feature_Counts)) +
   geom_jitter(width = 0.2, shape = 1, size = 2) +
   stat_summary(fun = median, geom = "crossbar", width = 0.5, fatten = 2, colour = "red") +
-  labs(title = title,
-       x = xAxislabel, y = yAxisLabel) +
+  labs(title = title, x = xAxislabel, y = yAxisLabel) +
+  coord_cartesian(ylim = ylim) +
   theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
         axis.text.x = element_text(size = 15), axis.title.x = element_blank())
