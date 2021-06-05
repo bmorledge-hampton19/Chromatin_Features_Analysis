@@ -16,7 +16,18 @@ class NucleosomeData(EncompassingData):
         self.strand = '+'
 
 
-class H1DensityCounter(ThisInThatCounter):
+class NucleosomeFeatureCounter(ThisInThatCounter):
+
+    def __init__(self, encompassedFeaturesFilePath, encompassingFeaturesFilePath, 
+                 outputFilePath, acceptableChromosomes = None, checkForSortedFiles = True,
+                 headersInEncompassedFeatures = False, headersInEncompassingFeatures = False,
+                 encompassingFeatureExtraRadius = 0, minEncompassedDistance = 0):
+        super().__init__(encompassedFeaturesFilePath, encompassingFeaturesFilePath, 
+                 outputFilePath, acceptableChromosomes, checkForSortedFiles,
+                 headersInEncompassedFeatures, headersInEncompassingFeatures,
+                 encompassingFeatureExtraRadius)
+
+        self.minEncompassedDistance = minEncompassedDistance
 
     def setUpOutputDataHandler(self):
         self.outputDataHandler = CounterOutputDataHandler(trackAllEncompassing=True)
@@ -26,17 +37,31 @@ class H1DensityCounter(ThisInThatCounter):
     def constructEncompassingFeature(self, line) -> NucleosomeData:
         return NucleosomeData(line, self.acceptableChromosomes)
 
+    def isEncompassedFeatureWithinEncompassingFeature(self, encompassedFeature = None, encompassingFeature = None):
 
-def getNucleosomeH1Density(genomeFeaturesFilePaths: List[str], nucleosomePosFilePath, searchRadius = 100):
+        if encompassedFeature is None: encompassedFeature = self.currentEncompassedFeature
+        if encompassingFeature is None: encompassingFeature = self.currentEncompassingFeature
+
+        return (super().isEncompassedFeatureWithinEncompassingFeature(encompassedFeature, encompassingFeature) and
+                abs(encompassingFeature.center - encompassedFeature.position) >= self.minEncompassedDistance)
+
+
+def countFeaturesAboutNucleosomes(genomeFeaturesFilePaths: List[str], nucleosomePosFilePath, onlyCountLinker, searchRadius = 100):
+
+    if onlyCountLinker: minEncompassedDistance = 74
+    else: minEncompassedDistance = 0
 
     for genomeFeaturesFilePath in genomeFeaturesFilePaths:
 
         print('\n' + "Working in",os.path.basename(genomeFeaturesFilePath))
 
-        outputFilePath = genomeFeaturesFilePath.rsplit('.',1)[0] + "_nucleosome_stratification.tsv"
+        outputFilePath = genomeFeaturesFilePath.rsplit('.',1)[0]
+        if onlyCountLinker: outputFilePath += "_nucleosome_stratification_linker_only.tsv"
+        else: outputFilePath += "_nucleosome_stratification.tsv"
 
-        counter = H1DensityCounter(genomeFeaturesFilePath, nucleosomePosFilePath, outputFilePath, 
-                                encompassingFeatureExtraRadius = searchRadius)
+        counter = NucleosomeFeatureCounter(genomeFeaturesFilePath, nucleosomePosFilePath, outputFilePath, 
+                                           encompassingFeatureExtraRadius = searchRadius, 
+                                           minEncompassedDistance = minEncompassedDistance)
         counter.count()
         counter.writeResults((None,{None:"Feature_Counts"}))
 
@@ -47,6 +72,7 @@ def main():
     dialog = TkinterDialog(workingDirectory=getDataDirectory())
     dialog.createMultipleFileSelector("Genome Feature Positions Files:",0,"context_mutations.bed",("Bed Files",".bed"))    
     dialog.createFileSelector("Nucleosome Dyad Center Positions:",1,("Bed Files",".bed"))
+    dialog.createCheckbox("Only Count Linker", 2, 0)
 
     # Run the UI
     dialog.mainloop()
@@ -54,7 +80,8 @@ def main():
     # If no input was received (i.e. the UI was terminated prematurely), then quit!
     if dialog.selections is None: quit()
 
-    getNucleosomeH1Density(dialog.selections.getFilePathGroups()[0], dialog.selections.getIndividualFilePaths()[0])
+    countFeaturesAboutNucleosomes(dialog.selections.getFilePathGroups()[0], dialog.selections.getIndividualFilePaths()[0],
+                                  dialog.selections.getToggleStates()[0])
 
 
 if __name__ == "__main__": main()
