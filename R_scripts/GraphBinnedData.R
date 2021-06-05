@@ -141,3 +141,29 @@ ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY"],
         axis.text.x = element_text(size = 15), axis.title.x = element_blank(),
         legend.text = element_text(size = 12), legend.title = element_text(size = 14))
 
+# Use the following commands (modified as necessary) to create a table of medians by time points and color domains.
+masterMedianTable = data.table()
+
+# Read in a new binned counts file and get the median log ratio values for each color (except GRAY).
+# Depends on the background (compBinCounts) and color domains files already being read in.
+timepoint = NA # Make sure to set this manually for each time point!
+binnedCountsFilePath = choose.files(multi = FALSE)
+binnedCountsTable = fread(binnedCountsFilePath)
+binnedCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts)]
+binnedCountsTable[,Majority_Domain_Color := binnedChromatinDomainColorsTable$Domain_Color]
+compBinCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts)]
+binnedCountsTable[, Log_Ratio := log(Counts_Per_Million/compBinCountsTable$Counts_Per_Million,2)]
+
+newMedianTable = binnedCountsTable[Majority_Domain_Color != "GRAY", .(Median = median(Log_Ratio), Time = timepoint),
+                                   Majority_Domain_Color]
+
+# I think this is really inefficient for a lot of time points, but I think it should do alright for a few.
+masterMedianTable = rbindlist(list(masterMedianTable,newMedianTable))
+
+# Graph a line for each color.
+ggplot(masterMedianTable, aes(Time, Median, color = Majority_Domain_Color)) +
+  scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
+                                "RED" = "red", "YELLOW" = "gold"), guide = FALSE) +
+  labs(title = title, x = xAxisLabel, y = yAxisLabel) +
+  geom_line() + geom_point() +
+  theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15))
