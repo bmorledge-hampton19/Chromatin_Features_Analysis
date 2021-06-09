@@ -1,7 +1,7 @@
 library(data.table)
 
 # Read in the data and derive a name for it
-binnedCountsFilePath = choose.files(multi = FALSE)
+binnedCountsFilePath = choose.files(multi = FALSE, caption = "Main Binned File")
 binnedCountsTable = fread(binnedCountsFilePath)
 binnedCountsDataName = strsplit(basename(binnedCountsFilePath),'.', fixed = T)[[1]][1]
 #binnedCountsDataName = strsplit(binnedCountsDataName, "_1000", fixed = T)[[1]][1]
@@ -11,20 +11,22 @@ binnedCountsTable[,Bin_Start := vapply(strsplit(`Bin_Start-End`, '-'),
                                        function(x) as.integer(x[1]), FUN.VALUE = integer(1))]
 
 # Create a column for counts normalized by total counts
+binnedCountsTable[Feature_Counts == 0, Feature_Counts := 1]# Pseudo-counts!
 binnedCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts) * 10^6]
 
 # Add a column for the majority color domain.
-binnedChromatinDomainColorsFilePath = choose.files(multi = FALSE)
+binnedChromatinDomainColorsFilePath = choose.files(multi = FALSE, caption = "Bin Color Domains File")
 binnedChromatinDomainColorsTable = fread(binnedChromatinDomainColorsFilePath)
 binnedCountsTable[,Majority_Domain_Color := binnedChromatinDomainColorsTable$Domain_Color]
 
 # Add in a complementary (background) data set.
-compBinCountsFilePath = choose.files(multi = FALSE)
+compBinCountsFilePath = choose.files(multi = FALSE, caption = "Background Binned File")
 compBinCountsTable = fread(compBinCountsFilePath)
 compBinCountsDataName = strsplit(basename(compBinCountsFilePath),'.', fixed = T)[[1]][1]
 
 compBinCountsTable[,Bin_Start := vapply(strsplit(`Bin_Start-End`, '-'),
                                        function(x) as.integer(x[1]), FUN.VALUE = integer(1))]
+
 
 compBinCountsTable[Feature_Counts == 0, Feature_Counts := 1]# Pseudo-counts!
 compBinCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts) * 10^6]
@@ -48,8 +50,8 @@ for (chromosome in unique(binnedCountsTable$Chromosome)) {
 }
 
 # Default comparison is damage and repair.
-firstDataSet = "Damage"
-compDataSet = "Repair"
+firstDataSet = "Repair"
+compDataSet = "Damage"
 
 # Create a graph for each chromosome (Repair and Damage both)
 for (chromosome in unique(binnedCountsTable$Chromosome)) {
@@ -84,26 +86,36 @@ for (chromosome in unique(binnedCountsTable$Chromosome)) {
 
 }
 
-
 # Create a graph for each chromosome that uses the log ratio between the two data sets and
 # colors based on majority chromatin domain.
-for (chromosome in unique(binnedCountsTable$Chromosome)) {
+yAxisLabel = "Repair to Damage log Ratio"
+colorPlot = TRUE
+ylim = NULL
+for (chromosome in list("chrX", "chrY", c("chr2L","chr2R"), c("chr3L","chr3R"), "chr4")) {
 
-  # Skip those funky chromosome fragments...
-  if (grepl('_',chromosome)) next
+  plot = ggplot(binnedCountsTable[Chromosome %in% chromosome],
+                aes(Bin_Start, Log_Ratio)) +
+    geom_bar(stat = "identity", color = "Black", fill = "Black") +
+    labs(title = title, x = "Chromosome Position", y = yAxisLabel) +
+    facet_grid(~Chromosome, space = "free", scales = "free") +
+    coord_cartesian(ylim = ylim) +
+    theme(plot.title = element_text(size = 20, hjust = 0.5),
+          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
+          strip.text = element_text(size = 15), panel.spacing = unit(0.1, "lines"), legend.position = "none")
 
-  # Plot the first data set...
-  relevantCountsTable = binnedCountsTable[Chromosome == chromosome]
+  if (colorPlot) {
+    plot = plot + geom_bar(aes(color = Majority_Domain_Color, fill = Majority_Domain_Color), stat = "identity") +
+      scale_fill_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
+                                   "RED" = "red", "YELLOW" = "gold", "GRAY" = "gray")) +
+      scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
+                                    "RED" = "red", "YELLOW" = "gold", "GRAY" = "gray"))
+  }
 
-  barplot(relevantCountsTable[, Log_Ratio], names.arg = relevantCountsTable[, Bin_Start],
-          xlab = "Chromosome Position", ylab = "Counts Per Million Log Ratio (Damage/Repair)",
-          col = relevantCountsTable$Majority_Domain_Color, border = relevantCountsTable$Majority_Domain_Color,
-          main = paste(comparisonTitle, chromosome))
+  print(plot)
 
 }
 
 title = "PLACEHOLDER TITLE"
-yAxisLabel = "Counts Per Million Log Ratio"
 ylim = NULL
 
 # Get the median for each of the color domains.
