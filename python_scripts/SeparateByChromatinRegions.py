@@ -11,7 +11,7 @@ from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import (Metadata, gene
 
 class MutationData:
 
-    def __init__(self, line: str, acceptableChromosomes):
+    def __init__(self, line: str):
 
         # Read in the next line.
         choppedUpLine = line.split()
@@ -21,10 +21,6 @@ class MutationData:
         self.chromosome = choppedUpLine[0] # The chromosome that houses the mutation.
         self.position = float(choppedUpLine[1]) # The position of the mutation in its chromosome. (0 base)
         self.domainName = None # The chromatin domain this mutation is a part of.
-
-        # Make sure the mutation is in a valid chromosome.
-        if not self.chromosome in acceptableChromosomes:
-            raise ValueError(choppedUpLine[0] + " is not a valid chromosome for the given genome.")
 
 
 # Contains data on a single domain range obtained by reading the next available line in a given file.
@@ -48,14 +44,11 @@ class DomainData:
 #        This code is pretty slick, but it will crash and burn and give you a heap of garbage as output if the inputs aren't sorted.
 class DomainSplitter:
 
-    def __init__(self, mutationFilePath, domainRangesFilePath, acceptableChromosomes):
+    def __init__(self, mutationFilePath, domainRangesFilePath):
 
         # Open the mutation and gene positions files to compare against one another.
         self.mutationFile = open(mutationFilePath, 'r')
         self.domainRangesFile = open(domainRangesFilePath,'r')
-
-        # Store the other arguments passed to the constructor
-        self.acceptableChromosomes = acceptableChromosomes
 
         # Set up the file system for outputting files for different domains..
         self.domainOutputFiles = dict()
@@ -82,7 +75,7 @@ class DomainSplitter:
             self.currentMutation = None
         # Otherwise, read in the next mutation.
         else:
-            self.currentMutation = MutationData(nextLine, self.acceptableChromosomes)
+            self.currentMutation = MutationData(nextLine)
 
     
     # Reads in the next domain from the domain ranges file into current domain
@@ -181,7 +174,7 @@ class DomainSplitter:
         # If we do, we need to set up a new output file for it.
         if not mutation.domainName in self.domainOutputFiles:
 
-            domainOutputFilePath = os.path.join(self.domainOutputFolder, mutation.domainName + "_domain_" + self.domainOutputFilePathBasename + ".bed")
+            domainOutputFilePath = os.path.join(self.domainOutputFolder, self.domainOutputFilePathBasename + '_' + mutation.domainName + "_domain.bed")
             self.domainOutputFiles[mutation.domainName] = open(domainOutputFilePath, 'w')
 
         # Now, write the mutation's line to the relevant file.
@@ -238,13 +231,10 @@ def separateByChromatinRegions(mutationFilePaths, domainRangesFilePath: str):
 
         # Make sure we have the expected file type.
         if not DataTypeStr.mutations in os.path.basename(mutationFilePath): 
-            raise ValueError("Mutation file should have \"" + DataTypeStr.mutations + "\" in the name.")
-        
-        # Get metadata and use it to generate a path to the nucleosome positions file.
-        metadata = Metadata(mutationFilePath)
+            warnings.warn("Mutation file is expected to have \"" + DataTypeStr.mutations + "\" in the name.  Are you sure this is the right file type?")
 
         # Ready, set, go!
-        counter = DomainSplitter(mutationFilePath, domainRangesFilePath, getAcceptableChromosomes(metadata.genomeFilePath))
+        counter = DomainSplitter(mutationFilePath, domainRangesFilePath)
         counter.splitByDomains()
 
 
