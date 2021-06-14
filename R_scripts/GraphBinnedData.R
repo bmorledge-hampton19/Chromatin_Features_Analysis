@@ -1,4 +1,5 @@
 library(data.table)
+library(ggplot2)
 
 # Read in the data and derive a name for it
 binnedCountsFilePath = choose.files(multi = FALSE, caption = "Main Binned File")
@@ -147,7 +148,7 @@ ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY"],
                                        colorLogRatioMedians$Majority_Domain_Color),
                      values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
                                 "RED" = "red", "YELLOW" = "gold")) +
-  labs(title = title, x = xAxislabel, y = yAxisLabel) +
+  labs(title = title, y = yAxisLabel) +
   coord_cartesian(ylim = ylim) +
   theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
         axis.text.x = element_text(size = 15), axis.title.x = element_blank(),
