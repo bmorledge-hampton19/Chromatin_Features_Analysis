@@ -2,9 +2,9 @@
 # density of those features within a 100 bp radius of the dyad centers.
 import os
 from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import getDataDirectory
-from mypyhelper.CountThisInThat.InputDataStructures import EncompassingData
-from mypyhelper.CountThisInThat.Counter import ThisInThatCounter
-from mypyhelper.CountThisInThat.CounterOutputDataHandler import CounterOutputDataHandler
+from benbiohelpers.CountThisInThat.InputDataStructures import EncompassingData
+from benbiohelpers.CountThisInThat.Counter import ThisInThatCounter
+from benbiohelpers.CountThisInThat.CounterOutputDataHandler import CounterOutputDataHandler
 from mutperiodpy.Tkinter_scripts.TkinterDialog import TkinterDialog
 from typing import List
 
