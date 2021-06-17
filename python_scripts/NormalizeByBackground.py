@@ -1,6 +1,5 @@
-from mutperiodpy.Tkinter_scripts.TkinterDialog import TkinterDialog
+from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog
 from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import getDataDirectory
-import os
 
 
 # This function normalizes one or more raw counts files.

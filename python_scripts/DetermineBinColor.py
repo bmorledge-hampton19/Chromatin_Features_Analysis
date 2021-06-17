@@ -1,4 +1,4 @@
-from mutperiodpy.Tkinter_scripts.TkinterDialog import TkinterDialog
+from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog
 from typing import List
 import os
 

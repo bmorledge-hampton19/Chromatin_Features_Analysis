@@ -5,7 +5,7 @@ from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import getDataDirector
 from benbiohelpers.CountThisInThat.InputDataStructures import EncompassingData
 from benbiohelpers.CountThisInThat.Counter import ThisInThatCounter
 from benbiohelpers.CountThisInThat.CounterOutputDataHandler import CounterOutputDataHandler
-from mutperiodpy.Tkinter_scripts.TkinterDialog import TkinterDialog
+from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog
 from typing import List
 
 

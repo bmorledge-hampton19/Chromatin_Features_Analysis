@@ -1,7 +1,7 @@
 # This script takes a nucleosome positions file and the upper and lower quartile nucleosomes from H1 density data 
 # (or other data, I suppose), and creates new nucleosome positioning files containing only those lower/upper quartile nucleosomes.
-from mutperiodpy.Tkinter_scripts.TkinterDialog import TkinterDialog
-from mutperiodpy.helper_scripts.UsefulBioinformaticsFunctions import parseFastaDescription
+from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog
+from benbiohelpers.FileSystemHandling.FastaFileIterator import parseFastaDescription
 from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import checkDirs, getDataDirectory
 import os, subprocess
 from typing import List
