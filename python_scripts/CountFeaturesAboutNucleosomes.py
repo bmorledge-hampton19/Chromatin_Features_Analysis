@@ -2,18 +2,11 @@
 # density of those features within a 100 bp radius of the dyad centers.
 import os
 from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import getDataDirectory
-from benbiohelpers.CountThisInThat.InputDataStructures import EncompassingData
+from benbiohelpers.CountThisInThat.InputDataStructures import EncompassingDataDefaultStrand
 from benbiohelpers.CountThisInThat.Counter import ThisInThatCounter
 from benbiohelpers.CountThisInThat.CounterOutputDataHandler import CounterOutputDataHandler
 from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog
 from typing import List
-
-
-class NucleosomeData(EncompassingData):
-
-    def setLocationData(self, acceptableChromosomes):
-        super().setLocationData(acceptableChromosomes)
-        self.strand = '+'
 
 
 class NucleosomeFeatureCounter(ThisInThatCounter):
@@ -30,12 +23,12 @@ class NucleosomeFeatureCounter(ThisInThatCounter):
         self.minEncompassedDistance = minEncompassedDistance
 
     def setUpOutputDataHandler(self):
-        self.outputDataHandler = CounterOutputDataHandler(trackAllEncompassing=True)
+        self.outputDataHandler = CounterOutputDataHandler()
         self.outputDataHandler.addEncompassingFeatureStratifier(outputName = "Nucleosome")
         self.outputDataHandler.addPlaceholderStratifier("Feature_Counts")
 
-    def constructEncompassingFeature(self, line) -> NucleosomeData:
-        return NucleosomeData(line, self.acceptableChromosomes)
+    def constructEncompassingFeature(self, line) -> EncompassingDataDefaultStrand:
+        return EncompassingDataDefaultStrand(line, self.acceptableChromosomes)
 
     def isEncompassedFeatureWithinEncompassingFeature(self, encompassedFeature = None, encompassingFeature = None):
 
