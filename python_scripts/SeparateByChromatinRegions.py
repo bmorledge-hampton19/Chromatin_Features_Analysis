@@ -33,7 +33,7 @@ class DomainData:
         self.chromosome = choppedUpLine[0]
         self.startPos = int(choppedUpLine[1]) # 0 base
         self.endPos = int(choppedUpLine[2]) - 1 # Still 0 base (I think?  I don't actually know whether or not the domain file is bed-formatted)
-        self.domainName = choppedUpLine[3]
+        self.domainName = choppedUpLine[3].replace('/',"_or_")
 
 
 # Uses the given domain ranges file and mutation file to split mutations by domain. 
