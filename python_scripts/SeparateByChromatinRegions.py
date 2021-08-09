@@ -6,7 +6,7 @@
 import os, warnings
 from typing import List
 from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog, Selections
-from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import (getDataDirectory, DataTypeStr, checkDirs)
+from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import getDataDirectory, DataTypeStr, checkDirs
 
 class MutationData:
 
