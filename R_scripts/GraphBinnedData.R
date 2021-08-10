@@ -1,90 +1,101 @@
 library(data.table)
 library(ggplot2)
 
-# Read in the data and derive a name for it
-binnedCountsFilePath = choose.files(multi = FALSE, caption = "Main Binned File")
-binnedCountsTable = fread(binnedCountsFilePath)
-binnedCountsDataName = strsplit(basename(binnedCountsFilePath),'.', fixed = T)[[1]][1]
-#binnedCountsDataName = strsplit(binnedCountsDataName, "_1000", fixed = T)[[1]][1]
+parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA, backgroundBinCountsFilePath = NA) {
 
-# Create a bin start column from the bin range column.
-binnedCountsTable[,Bin_Start := vapply(strsplit(`Bin_Start-End`, '-'),
-                                       function(x) as.integer(x[1]), FUN.VALUE = integer(1))]
+  # Read in the data and derive a name for it
+  binnedCountsFilePath = choose.files(multi = FALSE, caption = "Main Binned File")
+  binnedCountsTable = fread(binnedCountsFilePath)
 
-# Create a column for counts normalized by total counts
-binnedCountsTable[Feature_Counts == 0, Feature_Counts := 1]# Pseudo-counts!
-binnedCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts) * 10^6]
+  # Create a bin start column from the bin range column.
+  binnedCountsTable[,Bin_Start := vapply(strsplit(`Bin_Start-End`, '-'),
+                                         function(x) as.integer(x[1]), FUN.VALUE = integer(1))]
 
-# Add a column for the majority color domain.
-binnedChromatinDomainColorsFilePath = choose.files(multi = FALSE, caption = "Bin Color Domains File")
-binnedChromatinDomainColorsTable = fread(binnedChromatinDomainColorsFilePath)
-binnedCountsTable[,Majority_Domain_Color := binnedChromatinDomainColorsTable$Domain_Color]
+  # Create a column for counts normalized by total counts
+  binnedCountsTable[Feature_Counts == 0, Feature_Counts := 1]# Pseudo-counts!
+  binnedCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts) * 10^6]
 
-# Add in a complementary (background) data set.
-compBinCountsFilePath = choose.files(multi = FALSE, caption = "Background Binned File")
-compBinCountsTable = fread(compBinCountsFilePath)
-compBinCountsDataName = strsplit(basename(compBinCountsFilePath),'.', fixed = T)[[1]][1]
+  # Add a column for the majority color domain if the binned color domains file path was given.
+  if (!is.na(binnedColorDomainsFilePath)) {
+    binnedChromatinDomainColorsFilePath = choose.files(multi = FALSE, caption = "Bin Color Domains File")
+    binnedChromatinDomainColorsTable = fread(binnedChromatinDomainColorsFilePath)
+    binnedCountsTable[,Majority_Domain_Color := binnedChromatinDomainColorsTable$Domain_Color]
+  }
 
-compBinCountsTable[,Bin_Start := vapply(strsplit(`Bin_Start-End`, '-'),
-                                       function(x) as.integer(x[1]), FUN.VALUE = integer(1))]
+  # Add in a complementary (background) data set (If we have the relevant file).
+  if (!is.na(backgroundBinCountsFilePath)) {
+    backgroundBinCountsFilePath = choose.files(multi = FALSE, caption = "Background Binned File")
+    backgroundBinCountsTable = fread(backgroundBinCountsFilePath)
+    backgroundBinCountsDataName = strsplit(basename(backgroundBinCountsFilePath),'.', fixed = T)[[1]][1]
 
-
-compBinCountsTable[Feature_Counts == 0, Feature_Counts := 1]# Pseudo-counts!
-compBinCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts) * 10^6]
-
-# Create a log ratio column in the main counts file using the complementary data set.
-binnedCountsTable[, Log_Ratio := log(Counts_Per_Million/compBinCountsTable$Counts_Per_Million,2)]
-
-# Create a graph for each chromosome (One data set only)
-for (chromosome in unique(binnedCountsTable$Chromosome)) {
-
-  # Skip those funky chromosome fragments...
-  if (grepl('_',chromosome)) next
-
-  relevantCountsTable = binnedCountsTable[Chromosome == chromosome]
-
-  barplot(relevantCountsTable[, Feature_Counts],
-          names.arg = relevantCountsTable[, Bin_Start],
-          xlab = "Chromosome Position", ylab = "Counts", main = paste0(binnedCountsDataName,"_",chromosome))
+    backgroundBinCountsTable[,Bin_Start := vapply(strsplit(`Bin_Start-End`, '-'),
+                                           function(x) as.integer(x[1]), FUN.VALUE = integer(1))]
 
 
+    backgroundBinCountsTable[Feature_Counts == 0, Feature_Counts := 1]# Pseudo-counts!
+    backgroundBinCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts) * 10^6]
+
+    # Create a log ratio column in the main counts file using the complementary data set.
+    binnedCountsTable[, Log_Ratio := log(Counts_Per_Million/backgroundBinCountsTable$Counts_Per_Million,2)]
+  }
+
+  return(binnedCountsTable)
+
+}
+
+# Create a graph to bin in each chromosome for one data set.
+binInChromosomes = function(binnedCountsTable, baseTitle = "Binned Counts:") {
+  for (chromosome in unique(binnedCountsTable$Chromosome)) {
+
+    # Skip those funky chromosome fragments...
+    if (grepl('_',chromosome)) next
+
+    relevantCountsTable = binnedCountsTable[Chromosome == chromosome]
+
+    barplot(relevantCountsTable[, Feature_Counts],
+            names.arg = relevantCountsTable[, Bin_Start],
+            xlab = "Chromosome Position", ylab = "Counts", main = paste(baseTitle,chromosome))
+
+  }
 }
 
 # Default comparison is damage and repair.
 firstDataSet = "Repair"
 compDataSet = "Damage"
 
-# Create a graph for each chromosome (Repair and Damage both)
-for (chromosome in unique(binnedCountsTable$Chromosome)) {
+# Create a graph for each chromosome comparing across two data sets
+binInChromosomesAcrossDataSets = function(binnedCountsTable, compBinCountsTable, title = "Binned Counts:") {
+  for (chromosome in unique(binnedCountsTable$Chromosome)) {
 
-  # Skip those funky chromosome fragments...
-  if (grepl('_',chromosome)) next
+    # Skip those funky chromosome fragments...
+    if (grepl('_',chromosome)) next
 
-  # Plot the first data set...
-  relevantCountsTable = binnedCountsTable[Chromosome == chromosome]
+    # Plot the first data set...
+    relevantCountsTable = binnedCountsTable[Chromosome == chromosome]
 
-  barplot(relevantCountsTable[, Counts_Per_Million],
-          names.arg = relevantCountsTable[, Bin_Start], col = "#ca0020", border = "#ca0020",
-          xlab = "Chromosome Position", ylab = "Counts Per Million Total", main = paste(comparisonTitle, chromosome))
+    barplot(relevantCountsTable[, Counts_Per_Million],
+            names.arg = relevantCountsTable[, Bin_Start], col = "#ca0020", border = "#ca0020",
+            xlab = "Chromosome Position", ylab = "Counts Per Million Total", main = paste(title, chromosome))
 
-  # Then overlay the second data set!
-  par(new = T)
+    # Then overlay the second data set!
+    par(new = T)
 
-  compRelevantCountsTable = compBinCountsTable[Chromosome == chromosome]
+    compRelevantCountsTable = compBinCountsTable[Chromosome == chromosome]
 
-  barplot(compRelevantCountsTable[, Counts_Per_Million], yaxt = 'n',
-          names.arg = compRelevantCountsTable[, Bin_Start], col = "#0571b0", border = "#0571b0")
+    barplot(compRelevantCountsTable[, Counts_Per_Million], yaxt = 'n',
+            names.arg = compRelevantCountsTable[, Bin_Start], col = "#0571b0", border = "#0571b0")
 
-  # What if we keep track of where they intersect?
-  par(new = T)
-  barplot(pmin(relevantCountsTable$Counts_Per_Million, compRelevantCountsTable$Counts_Per_Million), yaxt = 'n',
-          names.arg = compRelevantCountsTable[, Bin_Start], col = "#683968", border = "#683968")
+    # What if we keep track of where they intersect?
+    par(new = T)
+    barplot(pmin(relevantCountsTable$Counts_Per_Million, compRelevantCountsTable$Counts_Per_Million), yaxt = 'n',
+            names.arg = compRelevantCountsTable[, Bin_Start], col = "#683968", border = "#683968")
 
 
-  # Finally, add a legend
-  legend("topleft", c(firstDataSet, compDataSet), col=c("#ca0020", "#0571b0"),
-         lwd=c(3,3), cex = 0.8, bg = "white")
+    # Finally, add a legend
+    legend("topleft", c(firstDataSet, compDataSet), col=c("#ca0020", "#0571b0"),
+           lwd=c(3,3), cex = 0.8, bg = "white")
 
+  }
 }
 
 # Create a graph for each chromosome that uses the log ratio between the two data sets and
