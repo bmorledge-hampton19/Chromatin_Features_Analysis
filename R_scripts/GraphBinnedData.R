@@ -1,6 +1,8 @@
 library(data.table)
 library(ggplot2)
 
+# Given the path to a binned counts file (and potentially paths to files containing info on the domains
+# or background binned counts) return a binned counts data.table.
 parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA, backgroundBinCountsFilePath = NA) {
 
   # Read in the data and derive a name for it
@@ -59,12 +61,11 @@ binInChromosomes = function(binnedCountsTable, baseTitle = "Binned Counts:") {
   }
 }
 
-# Default comparison is damage and repair.
-firstDataSet = "Repair"
-compDataSet = "Damage"
 
 # Create a graph for each chromosome comparing across two data sets
-binInChromosomesAcrossDataSets = function(binnedCountsTable, compBinCountsTable, title = "Binned Counts:") {
+# NOTE: Kinda old.  Uses weird base-R plotting.
+binInChromosomesAcrossDataSets = function(binnedCountsTable, compBinCountsTable, title = "Binned Counts:",
+                                          firstDataSet = "Repair", compDataSet = "Damage") {
   for (chromosome in unique(binnedCountsTable$Chromosome)) {
 
     # Skip those funky chromosome fragments...
@@ -98,96 +99,112 @@ binInChromosomesAcrossDataSets = function(binnedCountsTable, compBinCountsTable,
   }
 }
 
-# Create a graph for each chromosome that uses the log ratio between the two data sets and
-# colors based on majority chromatin domain.
-yAxisLabel = "Repair to Damage log Ratio"
-colorPlot = TRUE
-ylim = NULL
-for (chromosome in list("chrX", "chrY", c("chr2L","chr2R"), c("chr3L","chr3R"), "chr4")) {
+# Create a graph for each (given) chromosome set in chromosomeSets, that uses the log ratio
+# between the two data sets and colors based on majority chromatin domain.
+# AKA: The whole plotting enchilada with ggplot
+# (Could probably make more modular in the future is some features are not desired.)
+# chromosomeSets example: list("chrX", "chrY", c("chr2L","chr2R"), c("chr3L","chr3R"), "chr4")
+createggplotBinPlots = function(binnedCountsTable, chromosomeSets, yAxisLabel = "Repair to Damage log Ratio",
+                                title = "", yAxisLabel = "Log Ratio", ylim = NULL, colorPlot = TRUE) {
 
-  plot = ggplot(binnedCountsTable[Chromosome %in% chromosome],
-                aes(Bin_Start, Log_Ratio)) +
-    geom_bar(stat = "identity", color = "Black", fill = "Black") +
-    labs(title = title, x = "Chromosome Position", y = yAxisLabel) +
-    facet_grid(~Chromosome, space = "free", scales = "free") +
-    coord_cartesian(ylim = ylim) +
-    theme(plot.title = element_text(size = 20, hjust = 0.5),
-          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
-          strip.text = element_text(size = 15), panel.spacing = unit(0.1, "lines"), legend.position = "none")
+  for (chromosomeSet in chromosomeSets) {
 
-  if (colorPlot) {
-    plot = plot + geom_bar(aes(color = Majority_Domain_Color, fill = Majority_Domain_Color), stat = "identity") +
-      scale_fill_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
-                                   "RED" = "red", "YELLOW" = "gold", "GRAY" = "gray")) +
-      scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
-                                    "RED" = "red", "YELLOW" = "gold", "GRAY" = "gray"))
+    plot = ggplot(binnedCountsTable[Chromosome %in% chromosomeSet],
+                  aes(Bin_Start, Log_Ratio)) +
+      geom_bar(stat = "identity", color = "Black", fill = "Black") +
+      labs(title = title, x = "Chromosome Position", y = yAxisLabel) +
+      facet_grid(~Chromosome, space = "free", scales = "free") +
+      coord_cartesian(ylim = ylim) +
+      theme(plot.title = element_text(size = 20, hjust = 0.5),
+            axis.title = element_text(size = 15), axis.text = element_text(size = 12),
+            strip.text = element_text(size = 15), panel.spacing = unit(0.1, "lines"), legend.position = "none")
+
+    if (colorPlot) {
+      plot = plot + geom_bar(aes(color = Majority_Domain_Color, fill = Majority_Domain_Color), stat = "identity") +
+        scale_fill_identity() + scale_color_identity()
+        #scale_fill_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
+        #                             "RED" = "red", "YELLOW" = "gold", "GRAY" = "gray")) +
+        #scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
+        #                              "RED" = "red", "YELLOW" = "gold", "GRAY" = "gray"))
+    }
+
+    print(plot)
+
   }
+}
 
-  print(plot)
+
+# Plot the distribution of log ratio values for each individual color domain throughout the genome.
+# Plotted as either a scatter plot or box plot based on given "pseudo constant" values.
+SCATTER = 1
+BOXPLOT = 2
+plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "",
+                                    yAxisLabel = "Log Ratio", ylim = NULL) {
+
+  # Deprecated?
+  #
+  # Get the median for each of the color domains (Not really used right now though...)
+  # colorLogRatioMedians = binnedCountsTable[Majority_Domain_Color != "GRAY", .(Median = median(Log_Ratio)),
+  #                                         Majority_Domain_Color]
+  #
+  # Alternative to scale_color_identity with legend for median values.
+  # scale_color_manual(name = "Medians",
+  #                    labels = setNames(round(colorLogRatioMedians$Median,4),
+  #                                      colorLogRatioMedians$Majority_Domain_Color),
+  #                    values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
+  #                               "RED" = "red", "YELLOW" = "gold"))
+
+  # Basic plotting framework.
+  thisPlot = ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY"],
+                aes(Majority_Domain_Color, Log_Ratio, color = Majority_Domain_Color)) +
+    scale_color_identity()
+
+  # Plot as scatter
+  if (plotType == SCATTER) {
+    thisPlot = thisPlot + geom_jitter(width = 0.2, height = 0, shape = 1, size = 2) +
+      stat_summary(fun = median, geom = "crossbar", width = 0.5, fatten = 2, colour = "purple")
+  }
+  # Plot as boxes (without outliers)
+  else if (plotType == BOXPLOT) {
+  thisPlot = thisPlot + geom_boxplot(outlier.shape = NA)
+  }
+  else stop("Invalid \"plotType\" argument given.")
+
+  # Finishing touches
+  thisPlot = thisPlot + labs(title = title, y = yAxisLabel) +
+    coord_cartesian(ylim = ylim) +
+    theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
+          axis.text.x = element_text(size = 15), axis.title.x = element_blank(),
+          legend.text = element_text(size = 12), legend.title = element_text(size = 14))
+
+  # Go! (Do we need this?)
+  thisPlot
 
 }
 
-title = "PLACEHOLDER TITLE"
-ylim = NULL
 
-# Get the median for each of the color domains.
-colorLogRatioMedians = binnedCountsTable[Majority_Domain_Color != "GRAY", .(Median = median(Log_Ratio)),
-                                         Majority_Domain_Color]
+# Graphs median log_ratio counts for different domains across different time points.
+# Requires two parallel lists of binned counts tables and time points.
+plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "",
+                                       xAxisLabel = "Timepoint", yAxisLabel = "Log Ratio", ylim = NULL) {
 
-# Plot as scatter.
-ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY"],
-       aes(Majority_Domain_Color, Log_Ratio, color = Majority_Domain_Color)) +
-  scale_color_manual(name = "Medians",
-                     labels = setNames(round(colorLogRatioMedians$Median,4),
-                                       colorLogRatioMedians$Majority_Domain_Color),
-                     values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
-                                "RED" = "red", "YELLOW" = "gold")) +
-  geom_jitter(width = 0.2, shape = 1, size = 2) +
-  stat_summary(fun = median, geom = "crossbar", width = 0.5, fatten = 2, colour = "purple") +
-  labs(title = title, x = xAxislabel, y = yAxisLabel) +
-  coord_cartesian(ylim = ylim) +
-  theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
-        axis.text.x = element_text(size = 15), axis.title.x = element_blank(),
-        legend.text = element_text(size = 12), legend.title = element_text(size = 14))
+  masterMedianTable = rbindlist(mapply(getMedianTable, binnedCountsTables, timePoints))
 
-# Plot as boxes (without outliers)
-ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY"],
-       aes(Majority_Domain_Color, Log_Ratio, color = Majority_Domain_Color)) +
-  geom_boxplot(outlier.shape = NA) +
-  scale_color_manual(name = "Medians",
-                     labels = setNames(round(colorLogRatioMedians$Median,4),
-                                       colorLogRatioMedians$Majority_Domain_Color),
-                     values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
-                                "RED" = "red", "YELLOW" = "gold")) +
-  labs(title = title, y = yAxisLabel) +
-  coord_cartesian(ylim = ylim) +
-  theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
-        axis.text.x = element_text(size = 15), axis.title.x = element_blank(),
-        legend.text = element_text(size = 12), legend.title = element_text(size = 14))
+  # Graph a line for each color.
+  ggplot(masterMedianTable, aes(Time, Median, color = Majority_Domain_Color)) +
+    scale_color_identity() +
+    labs(title = title, x = xAxisLabel, y = yAxisLabel) +
+    geom_line() + geom_point() +
+    coord_cartesian(ylim = ylim) +
+    theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15))
 
-# Use the following commands (modified as necessary) to create a table of medians by time points and color domains.
-masterMedianTable = data.table()
+}
 
-# Read in a new binned counts file and get the median log ratio values for each color (except GRAY).
-# Depends on the background (compBinCounts) and color domains files already being read in.
-timepoint = NA # Make sure to set this manually for each time point!
-binnedCountsFilePath = choose.files(multi = FALSE)
-binnedCountsTable = fread(binnedCountsFilePath)
-binnedCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts)]
-binnedCountsTable[,Majority_Domain_Color := binnedChromatinDomainColorsTable$Domain_Color]
-compBinCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts)]
-binnedCountsTable[, Log_Ratio := log(Counts_Per_Million/compBinCountsTable$Counts_Per_Million,2)]
 
-newMedianTable = binnedCountsTable[Majority_Domain_Color != "GRAY", .(Median = median(Log_Ratio), Time = timepoint),
-                                   Majority_Domain_Color]
+# A function for producing a table of median log_ratio values with the domain color and timepoint included as columns.
+getMedianTable = function(binnedCountsTable, timePoint) {
 
-# I think this is really inefficient for a lot of time points, but I think it should do alright for a few.
-masterMedianTable = rbindlist(list(masterMedianTable,newMedianTable))
+  return(binnedCountsTable[Majority_Domain_Color != "GRAY", .(Median = median(Log_Ratio), Time = timePoint),
+                           Majority_Domain_Color])
 
-# Graph a line for each color.
-ggplot(masterMedianTable, aes(Time, Median, color = Majority_Domain_Color)) +
-  scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
-                                "RED" = "red", "YELLOW" = "gold"), guide = FALSE) +
-  labs(title = title, x = xAxisLabel, y = yAxisLabel) +
-  geom_line() + geom_point() +
-  theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15))
+}
