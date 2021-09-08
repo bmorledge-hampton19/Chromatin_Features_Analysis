@@ -104,8 +104,8 @@ binInChromosomesAcrossDataSets = function(binnedCountsTable, compBinCountsTable,
 # AKA: The whole plotting enchilada with ggplot
 # (Could probably make more modular in the future is some features are not desired.)
 # chromosomeSets example: list("chrX", "chrY", c("chr2L","chr2R"), c("chr3L","chr3R"), "chr4")
-createggplotBinPlots = function(binnedCountsTable, chromosomeSets, yAxisLabel = "Repair to Damage log Ratio",
-                                title = "", yAxisLabel = "Log Ratio", ylim = NULL, colorPlot = TRUE) {
+createggplotBinPlots = function(binnedCountsTable, chromosomeSets, yAxisLabel = "Log Ratio",
+                                title = "", ylim = NULL, colorPlot = TRUE) {
 
   for (chromosomeSet in chromosomeSets) {
 
