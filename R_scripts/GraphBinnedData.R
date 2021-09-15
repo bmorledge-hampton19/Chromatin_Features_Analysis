@@ -6,7 +6,6 @@ library(ggplot2)
 parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA, backgroundBinCountsFilePath = NA) {
 
   # Read in the data and derive a name for it
-  binnedCountsFilePath = choose.files(multi = FALSE, caption = "Main Binned File")
   binnedCountsTable = fread(binnedCountsFilePath)
 
   # Create a bin start column from the bin range column.
@@ -19,20 +18,16 @@ parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA, b
 
   # Add a column for the majority color domain if the binned color domains file path was given.
   if (!is.na(binnedColorDomainsFilePath)) {
-    binnedChromatinDomainColorsFilePath = choose.files(multi = FALSE, caption = "Bin Color Domains File")
-    binnedChromatinDomainColorsTable = fread(binnedChromatinDomainColorsFilePath)
-    binnedCountsTable[,Majority_Domain_Color := binnedChromatinDomainColorsTable$Domain_Color]
+    binnedColorDomainsTable = fread(binnedColorDomainsFilePath)
+    binnedCountsTable[,Majority_Domain_Color := binnedColorDomainsTable$Domain_Color]
   }
 
   # Add in a complementary (background) data set (If we have the relevant file).
   if (!is.na(backgroundBinCountsFilePath)) {
-    backgroundBinCountsFilePath = choose.files(multi = FALSE, caption = "Background Binned File")
     backgroundBinCountsTable = fread(backgroundBinCountsFilePath)
-    backgroundBinCountsDataName = strsplit(basename(backgroundBinCountsFilePath),'.', fixed = T)[[1]][1]
 
     backgroundBinCountsTable[,Bin_Start := vapply(strsplit(`Bin_Start-End`, '-'),
                                            function(x) as.integer(x[1]), FUN.VALUE = integer(1))]
-
 
     backgroundBinCountsTable[Feature_Counts == 0, Feature_Counts := 1]# Pseudo-counts!
     backgroundBinCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts) * 10^6]
@@ -104,13 +99,13 @@ binInChromosomesAcrossDataSets = function(binnedCountsTable, compBinCountsTable,
 # AKA: The whole plotting enchilada with ggplot
 # (Could probably make more modular in the future is some features are not desired.)
 # chromosomeSets example: list("chrX", "chrY", c("chr2L","chr2R"), c("chr3L","chr3R"), "chr4")
-createggplotBinPlots = function(binnedCountsTable, chromosomeSets, yAxisLabel = "Log Ratio",
-                                title = "", ylim = NULL, colorPlot = TRUE) {
+createGgplotBinPlots = function(binnedCountsTable, chromosomeSets, yData = "Log_Ratio",
+                                yAxisLabel = "Log Ratio", title = "", ylim = NULL, colorPlot = TRUE) {
 
   for (chromosomeSet in chromosomeSets) {
 
     plot = ggplot(binnedCountsTable[Chromosome %in% chromosomeSet],
-                  aes(Bin_Start, Log_Ratio)) +
+                  aes_string("Bin_Start", yData)) +
       geom_bar(stat = "identity", color = "Black", fill = "Black") +
       labs(title = title, x = "Chromosome Position", y = yAxisLabel) +
       facet_grid(~Chromosome, space = "free", scales = "free") +
@@ -155,7 +150,7 @@ plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "",
   #                               "RED" = "red", "YELLOW" = "gold"))
 
   # Basic plotting framework.
-  thisPlot = ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY"],
+  thisPlot = ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY" & Majority_Domain_Color != "WHITE"],
                 aes(Majority_Domain_Color, Log_Ratio, color = Majority_Domain_Color)) +
     scale_color_identity()
 
