@@ -179,11 +179,11 @@ plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "",
 
 
 # Graphs median log_ratio counts for different domains across different time points.
-# Requires two parallel lists of binned counts tables and time points.
+# Requires two parallel lists of binned counts tables and time points (as numeric values).
 plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "",
                                        xAxisLabel = "Timepoint", yAxisLabel = "Log Ratio", ylim = NULL) {
 
-  masterMedianTable = rbindlist(mapply(getMedianTable, binnedCountsTables, timePoints))
+  masterMedianTable = rbindlist(mapply(getMedianTable, binnedCountsTables, timePoints, SIMPLIFY = FALSE))
 
   # Graph a line for each color.
   ggplot(masterMedianTable, aes(Time, Median, color = Majority_Domain_Color)) +
@@ -196,7 +196,8 @@ plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "
 }
 
 
-# A function for producing a table of median log_ratio values with the domain color and timepoint included as columns.
+# A function for producing a table of median log_ratio values with the domain color and
+# time point (as a numeric value) included as columns.
 getMedianTable = function(binnedCountsTable, timePoint) {
 
   return(binnedCountsTable[Majority_Domain_Color != "GRAY", .(Median = median(Log_Ratio), Time = timePoint),
