@@ -133,7 +133,7 @@ createGgplotBinPlots = function(binnedCountsTable, chromosomeSets, yData = "Log_
 # Plotted as either a scatter plot or box plot based on given "pseudo constant" values.
 SCATTER = 1
 BOXPLOT = 2
-plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "",
+plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "", yData = "Log_Ratio",
                                     yAxisLabel = "Log Ratio", ylim = NULL) {
 
   # Deprecated?
@@ -151,7 +151,7 @@ plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "",
 
   # Basic plotting framework.
   thisPlot = ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY" & Majority_Domain_Color != "WHITE"],
-                aes(Majority_Domain_Color, Log_Ratio, color = Majority_Domain_Color)) +
+                aes_string("Majority_Domain_Color", yData, color = "Majority_Domain_Color")) +
     scale_color_identity()
 
   # Plot as scatter
