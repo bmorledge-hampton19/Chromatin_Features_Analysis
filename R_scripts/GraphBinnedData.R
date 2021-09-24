@@ -5,7 +5,7 @@ library(ggplot2)
 # or background binned counts) return a binned counts data.table.
 parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA, backgroundBinCountsFilePath = NA) {
 
-  # Read in the data and derive a name for it
+  # Read in the data
   binnedCountsTable = fread(binnedCountsFilePath)
 
   # Create a bin start column from the bin range column.
@@ -39,6 +39,64 @@ parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA, b
   return(binnedCountsTable)
 
 }
+
+
+# Given a path to a file with information on gene bins, return a binned counts data.table
+parseGeneBinData = function(geneBinsCountsFilePath, backgroundFilePath = NA) {
+
+  # Read in the data
+  geneBinsCountsTable = fread(geneBinsCountsFilePath)
+
+  # Create columns for counts normalized by total counts
+  geneBinsCountsTable[Coding_Strand_Counts == 0, Coding_Strand_Counts := 1]# Pseudo-counts!
+  geneBinsCountsTable[Noncoding_Strand_Counts == 0, Noncoding_Strand_Counts := 1]# More Pseudo-counts!
+  totalCounts = sum(geneBinsCountsTable$Coding_Strand_Counts) +
+                sum(geneBinsCountsTable$Noncoding_Strand_Counts)
+  geneBinsCountsTable[,Noncoding_Counts_Per_Million := Noncoding_Strand_Counts / totalCounts * 10^6]
+  geneBinsCountsTable[,Coding_Counts_Per_Million := Coding_Strand_Counts / totalCounts * 10^6]
+
+  # Add in a complementary (background) data set (If we have the relevant file).
+  if (!is.na(backgroundFilePath)) {
+    backgroundCountsTable = fread(backgroundFilePath)
+
+    backgroundCountsTable[Coding_Strand_Counts == 0, Coding_Strand_Counts := 1]# Pseudo-counts!
+    backgroundCountsTable[Noncoding_Strand_Counts == 0, Noncoding_Strand_Counts := 1]# More Pseudo-counts!
+    totalCounts = sum(backgroundCountsTable$Coding_Strand_Counts) +
+      sum(backgroundCountsTable$Noncoding_Strand_Counts)
+    backgroundCountsTable[,Coding_Counts_Per_Million := Coding_Strand_Counts / totalCounts * 10^6]
+    backgroundCountsTable[,Noncoding_Counts_Per_Million := Noncoding_Strand_Counts / totalCounts * 10^6]
+
+    # Create a log ratio column in the main counts file using the complementary data set.
+    geneBinsCountsTable[, Coding_Log_Ratio := log(Coding_Counts_Per_Million/
+                                                  backgroundCountsTable$Coding_Counts_Per_Million,2)]
+    geneBinsCountsTable[, Noncoding_Log_Ratio := log(Noncoding_Counts_Per_Million/
+                                                     backgroundCountsTable$Noncoding_Counts_Per_Million,2)]
+  }
+
+  return(geneBinsCountsTable)
+
+}
+
+
+plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene Fraction Bin",
+                           yAxisLabel = "Log Ratio", ylim = NULL, yData1 = "Coding_Log_Ratio",
+                           yData2 = "Noncoding_Log_Ratio") {
+
+  ggplot(geneBinsCountsTable, aes(Gene_Fraction)) +
+    geom_line(aes_string(y = yData1, color = shQuote("Black"))) +
+    geom_point(aes_string(y = yData1, color = shQuote("Black"))) +
+    geom_line(aes_string(y = yData2, color = shQuote("Red"))) +
+    geom_point(aes_string(y = yData2, color = shQuote("Red"))) +
+    scale_color_identity(labels = c(Black = "Coding Strand", Red = "Noncoding Strand"), guide = "legend") +
+    labs(title = title, x = xAxisLabel, y = yAxisLabel) +
+    coord_cartesian(ylim = ylim) +
+    scale_x_continuous(breaks = 1:6) +
+    theme(plot.title = element_text(size = 20, hjust = 0.5),
+          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
+          legend.text = element_text(size = 12),)
+
+}
+
 
 # Create a graph to bin in each chromosome for one data set.
 binInChromosomes = function(binnedCountsTable, baseTitle = "Binned Counts:") {
@@ -191,7 +249,8 @@ plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
     geom_line() + geom_point() +
     coord_cartesian(ylim = ylim) +
-    theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15))
+    theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
+          axis.text = element_text(size = 12), legend.text = element_text(size = 12),)
 
 }
 
@@ -200,7 +259,8 @@ plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "
 # time point (as a numeric value) included as columns.
 getMedianTable = function(binnedCountsTable, timePoint) {
 
-  return(binnedCountsTable[Majority_Domain_Color != "GRAY", .(Median = median(Log_Ratio), Time = timePoint),
+  return(binnedCountsTable[Majority_Domain_Color != "GRAY" & Majority_Domain_Color != "WHITE",
+                           .(Median = median(Log_Ratio), Time = timePoint),
                            Majority_Domain_Color])
 
 }
