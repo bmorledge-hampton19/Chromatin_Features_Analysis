@@ -184,7 +184,7 @@ def determineSpecifiedBinColors(colorDomainsFilePath, featureFilePath: str, mini
 
 def isACompletelyPastB(A: EncompassingData, B: EncompassingData):
     if A is None or B is None: return True
-    else: return A.chromosome > A.chromosome or A.startPos > B.endPos
+    else: return A.chromosome > B.chromosome or A.startPos > B.endPos
 
 
 def main():
