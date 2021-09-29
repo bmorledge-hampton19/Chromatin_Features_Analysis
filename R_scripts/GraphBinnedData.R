@@ -87,7 +87,8 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
     geom_point(aes_string(y = yData1, color = shQuote("Black"))) +
     geom_line(aes_string(y = yData2, color = shQuote("Red"))) +
     geom_point(aes_string(y = yData2, color = shQuote("Red"))) +
-    scale_color_identity(labels = c(Black = "Coding Strand", Red = "Noncoding Strand"), guide = "legend") +
+    scale_color_identity("", labels = c(Red = "Transcribed Strand", Black = "Non-Transcribed Strand"),
+                         breaks = c("Red", "Black"), guide = "legend") +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
     coord_cartesian(ylim = ylim) +
     scale_x_continuous(breaks = 1:6) +
