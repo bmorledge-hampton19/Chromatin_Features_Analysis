@@ -20,7 +20,7 @@ def binInGenes(featureFilePaths: List[str], geneDesignationsFilePath, flankingBi
 
     for featureFilePath in featureFilePaths:
 
-        print("Working in", os.path.basename(featureFilePath))
+        print("\nWorking in", os.path.basename(featureFilePath))
 
         outputFilePath = featureFilePath.rsplit('.', 1)[0] + "_gene_bins"
         if filePathSuffix: outputFilePath += '_' + filePathSuffix
@@ -55,10 +55,10 @@ def main():
     # If no input was received (i.e. the UI was terminated prematurely), then quit!
     if dialog.selections is None: quit()
 
-    if flankDialog.getControllerVar(): flankSize = int(dialog.selections.getTextEntries("FlankSize"))
+    if flankDialog.getControllerVar(): flankSize = int(dialog.selections.getTextEntries("FlankSize")[0])
     else: flankSize = 0
 
-    if fileSuffixDialog.getControllerVar(): fileSuffix = dialog.selections.getTextEntries("Suffix")
+    if fileSuffixDialog.getControllerVar(): fileSuffix = dialog.selections.getTextEntries("Suffix")[0]
     else: fileSuffix = ""
 
     binInGenes(dialog.selections.getFilePathGroups()[0], dialog.selections.getIndividualFilePaths()[0],
