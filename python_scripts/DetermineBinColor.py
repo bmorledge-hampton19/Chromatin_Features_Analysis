@@ -1,12 +1,14 @@
 from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog
+from benbiohelpers.CountThisInThat.InputDataStructures import EncompassingData, EncompassingDataDefaultStrand, ColorDomainData
 from typing import List
 import os
 
 
-# This function takes a bed file of chromatin color domains and assigns a color to each bin, defaulting to gray if no domain covers that area.
-# Bins are colored based on the majority color present in that region.
+# This function takes a bed file of chromatin color domains and assigns a color to bins regularly spaced to cover the whole genome.
+# Bins are colored based on the majority domain coverage present in that region.
+# If no domain achieves minimum coverage, it defaults to gray.
 # NOTE: input files must be sorted by chromosome ID (alphabetically) and feature start position (numerically).
-def binAcrossGenome(colorDomainsFilePath, chromSizesFilePath, binSize, minimumCoverage = 0.5):
+def determineRegularBinColors(colorDomainsFilePath, chromSizesFilePath, binSize, minimumCoverage = 0.5):
 
     # Retrieve information on the sizes of the chromosomes being used.
     chromSizes = dict()
@@ -15,7 +17,7 @@ def binAcrossGenome(colorDomainsFilePath, chromSizesFilePath, binSize, minimumCo
             chromID, chromSize = line.split()
             chromSizes[chromID] = int(chromSize)
 
-    print("Working in:", os.path.basename(colorDomainsFilePath))
+    print("\nWorking in:", os.path.basename(colorDomainsFilePath))
 
     # Generate an output file path
     binnedFeaturesFilePath = colorDomainsFilePath.rsplit('.', 1)[0] + '_' + str(binSize) + "bp_binned.tsv"
@@ -34,7 +36,7 @@ def binAcrossGenome(colorDomainsFilePath, chromSizesFilePath, binSize, minimumCo
             domainEndPos = int(choppedUpLine[2]) - 1
             domainColor = choppedUpLine[3]
 
-        # Iterate through the chromosome, tracking how many features start within each bin.
+        # Iterate through the chromosome, determining the color of each bin.
         for binChrom in chromSizes:
 
             print("Binning in",binChrom)
@@ -42,7 +44,7 @@ def binAcrossGenome(colorDomainsFilePath, chromSizesFilePath, binSize, minimumCo
             bins[binChrom] = dict()
             binStart = 0
 
-            # Remain in the bin until the chromosomes don't match AND all bins have been initialized.
+            # Bin until there is no more domain data for the current chromosome AND all bins have been initialized for the current chromosome.
             while (domainChrom is not None and domainChrom == binChrom) or binStart < chromSizes[binChrom]:
                 
                 # Initialize the dictionary and set the minimum coverage level as GRAY.
@@ -62,8 +64,8 @@ def binAcrossGenome(colorDomainsFilePath, chromSizesFilePath, binSize, minimumCo
 
                     encompassedBasesByColor[domainColor] = encompassedBasesByColor.setdefault(domainColor, 0) + encompassedBases
 
-                    # Read in the next chromosome, UNLESS this feature extends into the next bin.  In that case, continue onto the next bin.
-                    # NOTE: This means that this code doesn't handle overlapping regions very well, so I'm just assuming they don't occur very frequently.
+                    # Read in the next domain, UNLESS it extends into the next bin.  In that case, continue onto the next bin.
+                    # NOTE: This means that this code doesn't handle overlapping domains very well, so I'm just assuming they don't occur very frequently.
                     if domainEndPos < binStart + binSize:
                         choppedUpLine = colorDomainsFile.readline().split()
                         if not choppedUpLine: domainChrom = None
@@ -105,13 +107,103 @@ def binAcrossGenome(colorDomainsFilePath, chromSizesFilePath, binSize, minimumCo
                 binnedFeaturesFile.write('\t'.join((chromosome, str(binStart)+'-'+str(binStart+binSize-1), bins[chromosome][binStart])) + '\n')
 
 
+# This function takes a bed file of chromatin color domains and a bed file of specified regions
+# and assigns a color to each region based on majority coverage, defaulting to gray if no domain achieves minimum coverage.
+# NOTE: input files must be sorted by chromosome ID (alphabetically) and feature start position (numerically).
+def determineSpecifiedBinColors(colorDomainsFilePath, featureFilePath: str, minimumCoverage = 0.5):
+
+    print("\nWorking in:", os.path.basename(colorDomainsFilePath))
+
+    # Generate an output file path
+    coloredFeaturesFilePath = featureFilePath.rsplit('.', 1)[0] + "_color_domain_designations.tsv"
+
+    # Prepare for binning!
+    with open(colorDomainsFilePath, 'r') as colorDomainsFile:
+        with open(featureFilePath, 'r') as featureFile:
+            with open(coloredFeaturesFilePath, 'w') as coloredFeaturesFile:
+
+                # Read in the first line of the color domains file.
+                colorDomainsFileLine = colorDomainsFile.readline()
+                if not colorDomainsFileLine: currentDomainData = None
+                else:  currentDomainData = ColorDomainData(colorDomainsFileLine, None)
+
+                # Iterate through the features, determining the color for each.
+                currentChrom = "Not a chromosome name yet."
+                validDomainsForFeature: List[ColorDomainData] = list()
+                for featureFileLine in featureFile:
+
+                    featureData = EncompassingDataDefaultStrand(featureFileLine, None)
+
+                    if featureData.chromosome != currentChrom: 
+                        currentChrom = featureData.chromosome
+                        print("Assigning domain colors in", currentChrom)
+                    
+                    # Until the next domain is fully beyond the current feature, add it to the valid domains list.
+                    while not isACompletelyPastB(currentDomainData, featureData):
+                        validDomainsForFeature.append(currentDomainData)
+                        colorDomainsFileLine = colorDomainsFile.readline()
+                        if not colorDomainsFileLine: currentDomainData = None
+                        else:  currentDomainData = ColorDomainData(colorDomainsFileLine, None)
+
+                    # Iterate through valid Domains and discard any that have been completely passed.
+                    validDomainsForFeature = [validDomainData for validDomainData in validDomainsForFeature if not isACompletelyPastB(featureData, validDomainData)]
+
+                    # Get ready to assign a color using the valid domains!
+                    # Initialize the dictionary and set the minimum coverage level as GRAY.
+                    encompassedBasesByColor = dict()
+                    encompassedBasesByColor["GRAY"] = (featureData.endPos - featureData.startPos + 1)*minimumCoverage
+
+                    for validDomainData in validDomainsForFeature:
+
+                        # Check for non-overlap.
+                        # The first assertion shouldn't be possible, but the second check IS technically possible if the previous feature 
+                        # had a greater end pos, causing previously overlapping domains to now be ahead of the feature entirely.
+                        assert not isACompletelyPastB(featureData, validDomainData), "Passed domain encountered.  This should not be possible..."
+                        if isACompletelyPastB(validDomainData, featureData): continue
+                        
+                        # Determine range of overlap by finding the start and end of the overlap.
+                        if validDomainData.startPos < featureData.startPos: overlapStartPos = featureData.startPos
+                        else: overlapStartPos = validDomainData.startPos
+
+                        if validDomainData.endPos > featureData.endPos: overlapEndPos = featureData.endPos
+                        else: overlapEndPos = validDomainData.endPos
+
+                        # Update the dictionary with the number of encompassed bases for the given color.
+                        overlap=overlapEndPos-overlapStartPos+1
+                        encompassedBasesByColor[validDomainData.color] = encompassedBasesByColor.setdefault(validDomainData.color, 0) + overlap
+
+                    # Assign the majority color to the bin.
+                    maxCoverage = max(encompassedBasesByColor.values())
+                    maxColors = [key for key, value in encompassedBasesByColor.items() if value == maxCoverage]
+                    if len(maxColors) > 1: featureColor = "GRAY"
+                    else: featureColor = maxColors[0]
+
+                    # Write the result to the output file.
+                    coloredFeaturesFile.write(featureFileLine[:-1] + '\t' + featureColor + '\n')
+
+
+def isACompletelyPastB(A: EncompassingData, B: EncompassingData):
+    if A is None or B is None: return True
+    else: return A.chromosome > A.chromosome or A.startPos > B.endPos
+
+
 def main():
 
     #Create the Tkinter UI
     dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__))
     dialog.createFileSelector("Chromatin Domains File:", 0, ("Bed Files", ".bed"))
-    dialog.createFileSelector("Chromosome Sizes File:", 1, ("Text File",".txt"))
-    dialog.createDropdown("Bin Size (bp):", 2, 0, ("1000","10000","100000","1000000"))
+
+    binnerTypeDS = dialog.createDynamicSelector(1, 0)
+    binnerTypeDS.initDropdownController("Bins are...", ("Regular", "Specific Ranges"))
+    regularBinsDialog = binnerTypeDS.initDisplay("Regular", "Regular")
+    specificRangeBinsDialog = binnerTypeDS.initDisplay("Specific Ranges", "Specific Ranges")
+
+    regularBinsDialog.createFileSelector("Chromosome Sizes File:", 0, ("Text File",".txt"))
+    regularBinsDialog.createDropdown("Bin Size (bp):", 1, 0, ("1000","10000","100000","1000000"))
+
+    specificRangeBinsDialog.createFileSelector("Ranges to bin:", 0, ("Bed File", ".bed"))
+
+    binnerTypeDS.initDisplayState()
 
     # Run the UI
     dialog.mainloop()
@@ -119,7 +211,11 @@ def main():
     # If no input was received (i.e. the UI was terminated prematurely), then quit!
     if dialog.selections is None: quit()
 
-    binAcrossGenome(dialog.selections.getIndividualFilePaths()[0], dialog.selections.getIndividualFilePaths()[1],
-                    int(dialog.selections.getDropdownSelections()[0]))
+    if binnerTypeDS.getControllerVar() == "Regular":
+        determineRegularBinColors(dialog.selections.getIndividualFilePaths()[0], dialog.selections.getIndividualFilePaths("Regular")[0],
+                                  int(dialog.selections.getDropdownSelections("Regular")[0]))
+    elif binnerTypeDS.getControllerVar() == "Specific Ranges":
+        determineSpecifiedBinColors(dialog.selections.getIndividualFilePaths()[0],
+                                    dialog.selections.getIndividualFilePaths("Specific Ranges")[0])
 
 if __name__ == "__main__": main()
