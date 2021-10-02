@@ -82,19 +82,28 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
                            yAxisLabel = "Log Ratio", ylim = NULL, yData1 = "Coding_Log_Ratio",
                            yData2 = "Noncoding_Log_Ratio") {
 
-  ggplot(geneBinsCountsTable, aes(Gene_Fraction)) +
-    geom_line(aes_string(y = yData1, color = shQuote("Black"))) +
-    geom_point(aes_string(y = yData1, color = shQuote("Black"))) +
-    geom_line(aes_string(y = yData2, color = shQuote("Red"))) +
-    geom_point(aes_string(y = yData2, color = shQuote("Red"))) +
-    scale_color_identity("", labels = c(Red = "Transcribed Strand", Black = "Non-Transcribed Strand"),
-                         breaks = c("Red", "Black"), guide = "legend") +
+  if ("Color_Domain" %in% colnames(geneBinsCountsTable)) {
+    geneBinPlot = ggplot(geneBinsCountsTable, aes(Gene_Fraction, color = Color_Domain))
+  } else {
+    geneBinPlot = ggplot(geneBinsCountsTable, aes(Gene_Fraction))
+  }
+
+  geneBinPlot = geneBinPlot +
+    geom_line(aes_string(y = yData1, linetype = shQuote("dashed"))) +
+    geom_point(aes_string(y = yData1)) +
+    geom_line(aes_string(y = yData2, linetype = shQuote("solid"))) +
+    geom_point(aes_string(y = yData2)) +
+    scale_color_identity() +
+    scale_linetype_identity(guide = "legend", name = "", breaks = c("solid", "dashed"),
+                            labels = c("Transcribed Strand", "Non-Transcribed Strand")) +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
     coord_cartesian(ylim = ylim) +
-    scale_x_continuous(breaks = 1:6) +
+    scale_x_continuous(breaks = -2:9, minor_breaks = NULL) +
     theme(plot.title = element_text(size = 20, hjust = 0.5),
           axis.title = element_text(size = 15), axis.text = element_text(size = 12),
           legend.text = element_text(size = 12),)
+
+  print(geneBinPlot)
 
 }
 
