@@ -71,6 +71,8 @@ parseGeneBinData = function(geneBinsCountsFilePath, backgroundFilePath = NA) {
                                                   backgroundCountsTable$Coding_Counts_Per_Million,2)]
     geneBinsCountsTable[, Noncoding_Log_Ratio := log(Noncoding_Counts_Per_Million/
                                                      backgroundCountsTable$Noncoding_Counts_Per_Million,2)]
+
+    geneBinsCountsTable[, TS_Vs_NTS_Log_Ratio := Noncoding_Log_Ratio - Coding_Log_Ratio]
   }
 
   return(geneBinsCountsTable)
@@ -80,7 +82,8 @@ parseGeneBinData = function(geneBinsCountsFilePath, backgroundFilePath = NA) {
 
 plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene Fraction Bin",
                            yAxisLabel = "Log Ratio", ylim = NULL, yData1 = "Coding_Log_Ratio",
-                           yData2 = "Noncoding_Log_Ratio") {
+                           yData2 = "Noncoding_Log_Ratio", yData3 = "TS_Vs_NTS_Log_Ratio",
+                           plotYData3Only = TRUE) {
 
   if ("Color_Domain" %in% colnames(geneBinsCountsTable)) {
     geneBinPlot = ggplot(geneBinsCountsTable, aes(Gene_Fraction, color = Color_Domain))
@@ -89,13 +92,27 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
   }
 
   geneBinPlot = geneBinPlot +
-    geom_line(aes_string(y = yData1, linetype = shQuote("dashed"))) +
-    geom_point(aes_string(y = yData1)) +
-    geom_line(aes_string(y = yData2, linetype = shQuote("solid"))) +
-    geom_point(aes_string(y = yData2)) +
-    scale_color_identity() +
-    scale_linetype_identity(guide = "legend", name = "", breaks = c("solid", "dashed"),
-                            labels = c("Transcribed Strand", "Non-Transcribed Strand")) +
+    scale_color_identity()
+
+  if (plotYData3Only) {
+
+    geneBinPlot = geneBinPlot +
+      geom_line(aes_string(y = yData3)) +
+      geom_point(aes_string(y = yData3))
+
+  } else {
+
+    geneBinPlot = geneBinPlot +
+      geom_line(aes_string(y = yData1, linetype = shQuote("dashed"))) +
+      geom_point(aes_string(y = yData1)) +
+      geom_line(aes_string(y = yData2, linetype = shQuote("solid"))) +
+      geom_point(aes_string(y = yData2)) +
+      scale_linetype_identity(guide = "legend", name = "", breaks = c("solid", "dashed"),
+                              labels = c("Transcribed Strand", "Non-Transcribed Strand"))
+
+  }
+
+  geneBinPlot = geneBinPlot +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
     coord_cartesian(ylim = ylim) +
     scale_x_continuous(breaks = -2:9, minor_breaks = NULL) +
