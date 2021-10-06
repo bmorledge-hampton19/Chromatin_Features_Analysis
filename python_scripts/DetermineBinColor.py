@@ -115,7 +115,7 @@ def determineSpecifiedBinColors(colorDomainsFilePath, featureFilePath: str, mini
     print("\nWorking in:", os.path.basename(colorDomainsFilePath))
 
     # Generate an output file path
-    coloredFeaturesFilePath = featureFilePath.rsplit('.', 1)[0] + "_color_domain_designations.tsv"
+    coloredFeaturesFilePath = featureFilePath.rsplit('.', 1)[0] + "_color_domain_designations.bed"
 
     # Prepare for binning!
     with open(colorDomainsFilePath, 'r') as colorDomainsFile:
