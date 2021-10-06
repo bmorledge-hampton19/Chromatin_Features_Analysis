@@ -115,7 +115,8 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
   geneBinPlot = geneBinPlot +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
     coord_cartesian(ylim = ylim) +
-    scale_x_continuous(breaks = -2:9, minor_breaks = NULL) +
+    scale_x_continuous(breaks = -2:8 + 0.5, minor_breaks = NULL,
+                       labels = c('','',"TSS",'','','','','',"TES",'','')) +
     theme(plot.title = element_text(size = 20, hjust = 0.5),
           axis.title = element_text(size = 15), axis.text = element_text(size = 12),
           legend.text = element_text(size = 12),)
