@@ -86,9 +86,9 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
                            plotYData3Only = TRUE) {
 
   if ("Color_Domain" %in% colnames(geneBinsCountsTable)) {
-    geneBinPlot = ggplot(geneBinsCountsTable, aes(Gene_Fraction, color = Color_Domain))
+    geneBinPlot = ggplot(geneBinsCountsTable[Color_Domain != "GRAY"], aes(Gene_Fraction, color = Color_Domain))
   } else {
-    geneBinPlot = ggplot(geneBinsCountsTable, aes(Gene_Fraction))
+    geneBinPlot = ggplot(geneBinsCountsTable[Color_Domain != "GRAY"], aes(Gene_Fraction))
   }
 
   geneBinPlot = geneBinPlot +
