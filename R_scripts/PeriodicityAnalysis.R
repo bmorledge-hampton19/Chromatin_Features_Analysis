@@ -1,6 +1,7 @@
 # A series of functions for quantifying and plotting periodicities.
 # Trimmed down from mutperiod to accept simple counts data as input.
 library(lomb)
+library(ggplot2)
 
 ROTATIONAL = 1
 TRANSLATIONAL = 2
@@ -36,5 +37,22 @@ getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = 
 
 plotLombResult = function(lombData, title = "", xAxisLabel = "Periods",
                           yAxisLabel = "Power", ylim = NULL) {
+
+  if ("Color_Domain" %in% colnames(lombData)) {
+    lombResultPlot = ggplot(lombData, aes(x = Periods, y = Power, color = Color_Domain))
+  } else {
+    lombResultPlot = ggplot(lombData, aes(x = Periods, y = Power))
+  }
+
+  lombResultPlot = lombResultPlot +
+    geom_line(size = 2) +
+    scale_color_identity() +
+    coord_cartesian(ylim = ylim) +
+    labs(title = title, x = xAxisLabel, y = yAxisLabel) +
+    theme(plot.title = element_text(size = 20, hjust = 0.5),
+          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
+          legend.text = element_text(size = 12),)
+
+  print(lombResultPlot)
 
 }
