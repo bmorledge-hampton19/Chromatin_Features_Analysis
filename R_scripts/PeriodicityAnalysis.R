@@ -16,6 +16,10 @@ getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = 
     lombTo = 250
   } else stop("Invalid \"rotOrTrans\" argument given.")
 
+  if ("Normalized_Both_Strands" %in% colnames(countsTable)) {
+    colnames(countsTable)[which(colnames(countsTable) == "Normalized_Both_Strands")] = "Both_Strands_Counts"
+  }
+
   if (is.na(nucleosomeExclusionBoundary)) {
     counts = countsTable$Both_Strands_Counts
   } else {
@@ -36,22 +40,41 @@ getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = 
 
 
 plotLombResult = function(lombData, title = "", xAxisLabel = "Periods",
-                          yAxisLabel = "Power", ylim = NULL) {
+                          yAxisLabel = "Power", ylim = NULL,
+                          colorLabels = NULL, lineTypeLabels = NULL) {
+
+  lombResultPlot = ggplot(lombData, aes(x = Periods, y = Power))
 
   if ("Color_Domain" %in% colnames(lombData)) {
-    lombResultPlot = ggplot(lombData, aes(x = Periods, y = Power, color = Color_Domain))
-  } else {
-    lombResultPlot = ggplot(lombData, aes(x = Periods, y = Power))
+    lombResultPlot = lombResultPlot + aes(color = Color_Domain)
+  }
+  if ("Line_Type" %in% colnames(lombData)) {
+    lombResultPlot = lombResultPlot + aes(linetype = Line_Type)
   }
 
   lombResultPlot = lombResultPlot +
-    geom_line(size = 2) +
-    scale_color_identity() +
+    geom_line(size = 2)
+
+  if (is.null(colorLabels)) {
+    lombResultPlot = lombResultPlot + scale_color_identity()
+  } else {
+    lombResultPlot = lombResultPlot +
+      scale_color_identity(name = '', guide = "legend", breaks = names(colorLabels), labels = colorLabels)
+  }
+
+  if (is.null(lineTypeLabels)) {
+    lombResultPlot = lombResultPlot + scale_linetype_identity()
+  } else {
+    lombResultPlot = lombResultPlot +
+      scale_linetype_identity(name = '', guide = "legend", breaks = names(lineTypeLabels), labels = lineTypeLabels)
+  }
+
+  lombResultPlot = lombResultPlot +
     coord_cartesian(ylim = ylim) +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
     theme(plot.title = element_text(size = 20, hjust = 0.5),
           axis.title = element_text(size = 15), axis.text = element_text(size = 12),
-          legend.text = element_text(size = 12),)
+          legend.text = element_text(size = 12), legend.key.width = unit(2,"cm"))
 
   print(lombResultPlot)
 
