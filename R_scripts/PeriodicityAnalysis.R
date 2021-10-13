@@ -79,3 +79,119 @@ plotLombResult = function(lombData, title = "", xAxisLabel = "Periods",
   print(lombResultPlot)
 
 }
+
+
+### Modified from plotting tests in run_MutperiodR (might backport later, idk.)
+
+# From Cui and Zhurkin, 2010 with 1 added to each side and half-base positions included.
+minorInPositions = c(4:9-74, 14:19-74, 25:30-74, 36:41-74, 46:51-74, 56:61-74, 66:71-74,
+                     5:9-74.5, 15:19-74.5, 26:30-74.5, 37:41-74.5, 47:51-74.5, 57:61-74.5, 67:71-74.5)
+minorOutPositions = c(9:14-74, 20:24-74, 31:35-74, 41:46-74 ,51:56-74, 61:66-74,
+                      10:14-74.5, 21:24-74.5, 32:35-74.5, 42:46-74.5, 52:56-74.5, 62:66-74.5)
+
+# Average across 11 base pairs centered on the given position.
+smoothValues = function(middlePos, data, dataCol, averagingRadius = 5) {
+
+  positionsToAverage = (middlePos-averagingRadius):(middlePos+averagingRadius)
+  valuesToAverage = data[Dyad_Position %in% positionsToAverage][[dataCol]]
+  return(mean(valuesToAverage))
+
+}
+
+plotPeriodicity = function(dataSetName, smoothTranslational = TRUE, fixedNRL = NA,
+                           dataCol = "Normalized_Both_Strands", title = "", ylim = NULL,
+                           yAxisLabel = "Normalized Repair Reads",
+                           xAxisLabel = "Position Relative to Dyad (bp)") {
+
+  # Get the relevant counts and periodicity data for the given data set name.
+  if (dataSetName %in% names(mutperiodData$normalizedNucleosomeCountsTables)) {
+    countsData = mutperiodData$normalizedNucleosomeCountsTables[[dataSetName]]
+  } else if (dataSetName %in% names(mutperiodData$rawNucleosomeCountsTables)) {
+    countsData = mutperiodData$rawNucleosomeCountsTables[[dataSetName]]
+  } else stop("Unknown data set name.")
+
+  periodicityData = as.list(mutperiodData$periodicityResults[Data_Set == dataSetName])
+
+  # Determine whether the data is rotational, rotational+linker, or translational.
+  rotational = FALSE
+  rotationalPlus = FALSE
+  translational = FALSE
+  if (min(countsData$Dyad_Position) >= -73) {
+    rotational = TRUE
+  } else if (min(countsData$Dyad_Position) > -999) {
+    rotational = TRUE
+    rotationalPlus = TRUE
+  } else translational = TRUE
+
+  # If only rotational, trim to the cutoff value
+  if (rotational && !rotationalPlus) {
+    countsData = countsData[Dyad_Position >= -rotationalOnlyCutoff & Dyad_Position <= rotationalOnlyCutoff]
+  }
+
+  # Smooth if translational and requested
+  if (translational && smoothTranslational) {
+    countsData = copy(countsData)
+    countsData[, (dataCol) := sapply(countsData$Dyad_Position, smoothValues, data = countsData, dataCol = dataCol)]
+  }
+
+  if (rotational) {
+    # Color rotational positioning
+    countsData[Dyad_Position %in% minorInPositions | -Dyad_Position %in% minorInPositions, Color := "#1bcc44"]
+    countsData[Dyad_Position %in% minorOutPositions | -Dyad_Position %in% minorOutPositions, Color := "#993299"]
+    countsData[is.na(Color), Color := "Black"]
+  }
+
+  if (rotationalPlus) {
+    # Color linker DNA in linker+ plots.
+    countsData[Dyad_Position <= -73 | Dyad_Position >= 73, Color := "Gold"]
+  }
+
+  if (translational) {
+
+    # Derive linker and nucleosome positions from the expected period of the data.
+    if (is.na(fixedNRL)) {
+      nucRepLen = round(periodicityData$Expected_Peak_Periodicity)
+    } else {
+      nucRepLen = fixedNRL
+    }
+
+    nucleosomePositions = sapply(1:10, function(x) return(append((-73+x*nucRepLen):(73+x*nucRepLen),
+                                                                 (-72.5+x*nucRepLen):(72.5+x*nucRepLen))))
+    nucleosomePositions = append(nucleosomePositions, c(0:73, 0.5:72.5))
+    linkerPositions = sapply(0:8, function(x) return( append((74+x*nucRepLen):(-74+(x+1)*nucRepLen),
+                                                             (73.5+x*nucRepLen):(-73.5+(x+1)*nucRepLen))))
+
+    # Color translational positioning
+    countsData[Dyad_Position %in% nucleosomePositions | -Dyad_Position %in% nucleosomePositions, Color := "#0571b0"]
+    countsData[Dyad_Position %in% linkerPositions | -Dyad_Position %in% linkerPositions, Color := "#ca0020"]
+  }
+
+  # Plot it!
+  periodicityPlot = ggplot(countsData, aes_string("Dyad_Position", dataCol, color = "Color")) +
+                    geom_path(size = 1.25, aes(group = 1))
+  if (rotationalPlus) {
+    periodicityPlot = periodicityPlot +
+      scale_color_identity(name = '', guide = "legend",
+                           breaks = c("#1bcc44", "#993299", "Gold"),
+                           labels = c("Minor-in", "Minor-out", "Linker"))
+  } else if (rotational) {
+    periodicityPlot = periodicityPlot +
+      scale_color_identity(name = '', guide = "legend",
+                           breaks = c("#1bcc44", "#993299"),
+                           labels = c("Minor-in", "Minor-out"))
+  } else if (translational) {
+    periodicityPlot = periodicityPlot +
+      scale_color_identity(name = '', guide = "legend",
+                           breaks = c("#0571b0", "#ca0020"),
+                           labels = c("Nucloeosme","Linker"))
+  }
+  periodicityPlot = periodicityPlot +
+    coord_cartesian(ylim = ylim) +
+    labs(title = title, x = xAxisLabel, y = yAxisLabel) +
+    theme(plot.title = element_text(size = 20, hjust = 0.5),
+          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
+          legend.text = element_text(size = 12))
+
+  print(periodicityPlot)
+
+}
