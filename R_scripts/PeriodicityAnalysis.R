@@ -192,7 +192,7 @@ plotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60,
     periodicityPlot = periodicityPlot +
       scale_color_identity(name = '', guide = "legend",
                            breaks = c("#0571b0", "#ca0020"),
-                           labels = c("Nucloeosme","Linker"))
+                           labels = c("Nucleosome","Linker"))
   }
   periodicityPlot = periodicityPlot +
     coord_cartesian(ylim = ylim) +
