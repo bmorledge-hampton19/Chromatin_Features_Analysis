@@ -98,19 +98,27 @@ smoothValues = function(middlePos, data, dataCol, averagingRadius = 5) {
 
 }
 
-plotPeriodicity = function(dataSetName, smoothTranslational = TRUE, fixedNRL = NA,
+
+plotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60,
+                           smoothTranslational = TRUE, fixedNRL = NA,
                            dataCol = "Normalized_Both_Strands", title = "", ylim = NULL,
                            yAxisLabel = "Normalized Repair Reads",
                            xAxisLabel = "Position Relative to Dyad (bp)") {
 
-  # Get the relevant counts and periodicity data for the given data set name.
-  if (dataSetName %in% names(mutperiodData$normalizedNucleosomeCountsTables)) {
-    countsData = mutperiodData$normalizedNucleosomeCountsTables[[dataSetName]]
-  } else if (dataSetName %in% names(mutperiodData$rawNucleosomeCountsTables)) {
-    countsData = mutperiodData$rawNucleosomeCountsTables[[dataSetName]]
-  } else stop("Unknown data set name.")
-
-  periodicityData = as.list(mutperiodData$periodicityResults[Data_Set == dataSetName])
+  # If dataSet is a string, get the relevant counts and periodicity data for the given data set name.
+  if (is.character(dataSet)) {
+    if (dataSet %in% names(mutperiodData$normalizedNucleosomeCountsTables)) {
+      countsData = mutperiodData$normalizedNucleosomeCountsTables[[dataSet]]
+    } else if (dataSet %in% names(mutperiodData$rawNucleosomeCountsTables)) {
+      countsData = mutperiodData$rawNucleosomeCountsTables[[dataSet]]
+    } else stop("Unknown data set name.")
+    periodicityData = as.list(mutperiodData$periodicityResults[Data_Set == dataSet])
+  }
+  # Otherwise, the data set that was passed in should just be the counts data.
+  else {
+    countsData = dataSet
+    periodicityData = NA
+  }
 
   # Determine whether the data is rotational, rotational+linker, or translational.
   rotational = FALSE
@@ -150,6 +158,7 @@ plotPeriodicity = function(dataSetName, smoothTranslational = TRUE, fixedNRL = N
 
     # Derive linker and nucleosome positions from the expected period of the data.
     if (is.na(fixedNRL)) {
+      if (is.na(periodicityData)) stop("No NRL given and no periodicity data available for this data set.")
       nucRepLen = round(periodicityData$Expected_Peak_Periodicity)
     } else {
       nucRepLen = fixedNRL
