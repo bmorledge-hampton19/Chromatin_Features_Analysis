@@ -195,3 +195,57 @@ plotPeriodicity = function(dataSetName, smoothTranslational = TRUE, fixedNRL = N
   print(periodicityPlot)
 
 }
+
+
+# Plot a bunch of figures together using facets, stratified by timepoint on one axis and domains on the other.
+expectedTimepoints = c("10m", "30m", "8h", "16h", "24h")
+expectedDomains = c("BLACK", "BLUE", "GREEN", "RED", "YELLOW")
+
+addTimepointAndDomainInfo = function(dataSetName) {
+
+  timepoint = names(which(sapply(expectedTimepoints, function(x) grepl(x,dataSetName))))
+  domain = names(which(sapply(expectedDomains, function(x) grepl(x,dataSetName))))
+
+  if (length(timepoint) == 0 || length(domain) == 0) return(data.table())
+  if (length(timepoint) > 1) stop(paste("Multiple timepoints found in "),dataSetName)
+  if (length(domain) > 1) stop(paste("Multiple domains found in "),dataSetName)
+
+  if (dataSetName %in% names(mutperiodData$normalizedNucleosomeCountsTables)) {
+    countsData = mutperiodData$normalizedNucleosomeCountsTables[[dataSetName]]
+  } else if (dataSetName %in% names(mutperiodData$rawNucleosomeCountsTables)) {
+    countsData = mutperiodData$rawNucleosomeCountsTables[[dataSetName]]
+  } else stop("Unknown data set name.")
+
+  if (grepl("nuc-group", dataSetName, fixed = TRUE)) {
+    countsData = copy(countsData)
+    countsData[, (dataCol) := sapply(countsData$Dyad_Position, smoothValues, data = countsData, dataCol = dataCol)]
+  }
+
+  return(countsData[, c("Timepoint", "Domain") := list(rep(timepoint, .N), rep(domain, .N))])
+
+}
+
+isTranslationalDataSets = grepl("nuc-group", dataSetNames, fixed = TRUE)
+isRep1DataSet = grepl("rep1", dataSetNames)
+
+# Gets all data for translational rep1 data sets with timepoint and domain columns.
+stratifiedCountsData = rbindlist(lapply(dataSetNames[isTranslationalDataSets & isRep1DataSet],
+                                        addTimepointAndDomainInfo))
+
+# Gets all data for rotational rep1 data sets with timepoint and domain columns.
+stratifiedCountsData = rbindlist(lapply(dataSetNames[!isTranslationalDataSets & isRep1DataSet],
+                                        addTimepointAndDomainInfo))
+
+ggplot(stratifiedCountsData,
+       aes_string("Dyad_Position", dataCol, color = "Domain")) +
+  scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "forestgreen",
+                                "RED" = "red", "YELLOW" = "gold2"), guide = FALSE) +
+  geom_line() +
+  labs(title = title, x = "Position Relative to Dyad (bp)", y = yAxisLabel) +
+  facet_grid(factor(Timepoint, levels = expectedTimepoints)~Domain) +
+  coord_cartesian(ylim = ylim) +
+  scale_x_continuous(breaks = c(round(min(stratifiedCountsData$Dyad_Position)/2),0,
+                                round(max(stratifiedCountsData$Dyad_Position)/2))) +
+  theme(plot.title = element_text(size = 20, hjust = 0.5),
+        axis.title = element_text(size = 15), axis.text = element_text(size = 12),
+        strip.text = element_text(size = 15))
