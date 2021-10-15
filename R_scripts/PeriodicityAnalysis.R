@@ -197,11 +197,12 @@ plotPeriodicity = function(dataSetName, smoothTranslational = TRUE, fixedNRL = N
 }
 
 
-# Plot a bunch of figures together using facets, stratified by timepoint on one axis and domains on the other.
-expectedTimepoints = c("10m", "30m", "8h", "16h", "24h")
-expectedDomains = c("BLACK", "BLUE", "GREEN", "RED", "YELLOW")
-
-addTimepointAndDomainInfo = function(dataSetName) {
+# Add information on timepoint and domain to a given data table.  If none of the expected timepoints or
+# none of the expected domains are present, return an empty data.table.
+# Also, smooths translational data.
+addTimepointAndDomainInfo = function(dataSetName, dataCol = "Normalized_Both_Strands",
+                                     expectedTimepoints = c("10m", "30m", "8h", "16h", "24h"),
+                                     expectedDomains = c("BLACK", "BLUE", "GREEN", "RED", "YELLOW")) {
 
   timepoint = names(which(sapply(expectedTimepoints, function(x) grepl(x,dataSetName))))
   domain = names(which(sapply(expectedDomains, function(x) grepl(x,dataSetName))))
@@ -225,27 +226,32 @@ addTimepointAndDomainInfo = function(dataSetName) {
 
 }
 
-isTranslationalDataSets = grepl("nuc-group", dataSetNames, fixed = TRUE)
-isRep1DataSet = grepl("rep1", dataSetNames)
+# Plot a bunch of figures together using facets, stratified by timepoint on one axis and domains on the other.
+plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands",
+                              expectedTimepoints = c("10m", "30m", "8h", "16h", "24h"),
+                              title = "", xBreaks = NULL, ylim = NULL,
+                              yAxisLabel = "Normalized Repair Reads",
+                              xAxisLabel = "Position Relative to Dyad (bp)") {
+  bulkCountsPlot = ggplot(bulkCountsData, aes_string("Dyad_Position", dataCol, color = "Domain")) +
+    scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "forestgreen",
+                                  "RED" = "red", "YELLOW" = "gold2"), guide = FALSE) +
+    geom_line() +
+    labs(title = title, x = "Position Relative to Dyad (bp)", y = yAxisLabel) +
+    facet_grid(factor(Timepoint, levels = expectedTimepoints)~Domain) +
+    coord_cartesian(ylim = ylim)
+  if (is.null(xBreaks)) {
+    bulkCountsPlot = bulkCountsPlot +
+      scale_x_continuous(breaks = c(round(min(bulkCountsData$Dyad_Position)/2),0,
+                                    round(max(bulkCountsData$Dyad_Position)/2)))
+  } else {
+    bulkCountsPlot = bulkCountsPlot + scale_x_continuous(breaks = xBreaks)
+  }
+  bulkCountsPlot = bulkCountsPlot +
+    scale_y_continuous(n.breaks = 3) +
+    theme(plot.title = element_text(size = 20, hjust = 0.5),
+          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
+          strip.text = element_text(size = 15))
 
-# Gets all data for translational rep1 data sets with timepoint and domain columns.
-stratifiedCountsData = rbindlist(lapply(dataSetNames[isTranslationalDataSets & isRep1DataSet],
-                                        addTimepointAndDomainInfo))
+  print(bulkCountsPlot)
 
-# Gets all data for rotational rep1 data sets with timepoint and domain columns.
-stratifiedCountsData = rbindlist(lapply(dataSetNames[!isTranslationalDataSets & isRep1DataSet],
-                                        addTimepointAndDomainInfo))
-
-ggplot(stratifiedCountsData,
-       aes_string("Dyad_Position", dataCol, color = "Domain")) +
-  scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "forestgreen",
-                                "RED" = "red", "YELLOW" = "gold2"), guide = FALSE) +
-  geom_line() +
-  labs(title = title, x = "Position Relative to Dyad (bp)", y = yAxisLabel) +
-  facet_grid(factor(Timepoint, levels = expectedTimepoints)~Domain) +
-  coord_cartesian(ylim = ylim) +
-  scale_x_continuous(breaks = c(round(min(stratifiedCountsData$Dyad_Position)/2),0,
-                                round(max(stratifiedCountsData$Dyad_Position)/2))) +
-  theme(plot.title = element_text(size = 20, hjust = 0.5),
-        axis.title = element_text(size = 15), axis.text = element_text(size = 12),
-        strip.text = element_text(size = 15))
+  }
