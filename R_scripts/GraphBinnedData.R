@@ -255,11 +255,11 @@ plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "", yDa
   thisPlot = thisPlot + labs(title = title, y = yAxisLabel) +
     coord_cartesian(ylim = ylim) +
     theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
-          axis.text.x = element_text(size = 15), axis.title.x = element_blank(),
+          axis.text.x = element_text(size = 15), axis.text.y = element_text(size = 12),
+          axis.title.x = element_blank(),
           legend.text = element_text(size = 12), legend.title = element_text(size = 14))
 
-  # Go! (Do we need this?)
-  thisPlot
+  print(thisPlot)
 
 }
 
