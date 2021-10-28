@@ -208,6 +208,44 @@ plotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60,
 }
 
 
+# Plot the plus and minus strands (aligned) as two lines on the same graph.
+plotPlusAndMinus = function(dataSet, title = "", ylim = NULL,
+                            yAxisLabel = "Normalized Repair Reads",
+                            xAxisLabel = "Position Relative to Dyad (bp)") {
+
+  # If dataSet is a string, get the relevant counts and periodicity data for the given data set name.
+  if (is.character(dataSet)) {
+    if (dataSet %in% names(mutperiodData$normalizedNucleosomeCountsTables)) {
+      countsData = mutperiodData$normalizedNucleosomeCountsTables[[dataSet]]
+    } else if (dataSet %in% names(mutperiodData$rawNucleosomeCountsTables)) {
+      countsData = mutperiodData$rawNucleosomeCountsTables[[dataSet]]
+    } else stop("Unknown data set name.")
+  }
+  # Otherwise, the data set that was passed in should just be the counts data.
+  else countsData = dataSet
+
+  plusStrandCounts = countsData[[which(grepl("Plus_Strand", colnames(countsData)))]]
+  minusStrandCounts = countsData[[which(grepl("Minus_Strand", colnames(countsData)))]]
+
+  strandCountsData = data.table(Dyad_Position = countsData[,Dyad_Position],
+                                Plus_Strand_Counts = plusStrandCounts,
+                                Minus_Strand_Counts = minusStrandCounts)
+
+  ggplot(strandCountsData, aes(x = Dyad_Position)) +
+    geom_line(aes(y = Plus_Strand_Counts, color = "forestgreen"), size = 1.25) +
+    geom_line(aes(y = Minus_Strand_Counts, color = "red"), size = 1.25) +
+    scale_color_identity(name = '', guide = "legend",
+                         breaks = c("forestgreen", "red"),
+                         labels = c("Plus Strand", "Minus Strand")) +
+    coord_cartesian(ylim = ylim) +
+    labs(title = title, x = xAxisLabel, y = yAxisLabel) +
+    theme(plot.title = element_text(size = 20, hjust = 0.5),
+          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
+          legend.text = element_text(size = 12))
+
+}
+
+
 # Add information on timepoint and domain to a given data table.  If none of the expected timepoints or
 # none of the expected domains are present, return an empty data.table.
 # Also, smooths translational data.
