@@ -6,7 +6,8 @@ library(ggplot2)
 ROTATIONAL = 1
 TRANSLATIONAL = 2
 # Returns a lomb object for the given data.  (Usually nucleosome self-count data)
-getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = NA) {
+getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = NA,
+                         showLspWarnings = FALSE) {
 
   if (rotOrTrans == ROTATIONAL) {
     lombFrom = 5
@@ -34,7 +35,8 @@ getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = 
                           Dyad_Position < -nucleosomeExclusionBoundary, Dyad_Position]
   }
 
-  return(lsp(counts, times, lombFrom, lombTo, "period", 100, plot = FALSE))
+  if (showLspWarnings) return(lsp(counts, times, lombFrom, lombTo, "period", 100, plot = FALSE))
+  else suppressWarnings(return(lsp(counts, times, lombFrom, lombTo, "period", 100, plot = FALSE)))
 
 }
 
@@ -100,7 +102,7 @@ smoothValues = function(middlePos, data, dataCol, averagingRadius = 5) {
 
 
 plotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60,
-                           smoothTranslational = TRUE, fixedNRL = NA,
+                           smoothTranslational = TRUE, fixedNRL = NULL,
                            dataCol = "Normalized_Both_Strands", title = "", ylim = NULL,
                            yAxisLabel = "Normalized Repair Reads",
                            xAxisLabel = "Position Relative to Dyad (bp)") {
@@ -117,7 +119,7 @@ plotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60,
   # Otherwise, the data set that was passed in should just be the counts data.
   else {
     countsData = dataSet
-    periodicityData = NA
+    periodicityData = NULL
   }
 
   # Determine whether the data is rotational, rotational+linker, or translational.
@@ -157,8 +159,8 @@ plotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60,
   if (translational) {
 
     # Derive linker and nucleosome positions from the expected period of the data.
-    if (is.na(fixedNRL)) {
-      if (is.na(periodicityData)) stop("No NRL given and no periodicity data available for this data set.")
+    if (is.null(fixedNRL)) {
+      if (is.null(periodicityData)) stop("No NRL given and no periodicity data available for this data set.")
       nucRepLen = round(periodicityData$Expected_Peak_Periodicity)
     } else {
       nucRepLen = fixedNRL
@@ -243,7 +245,7 @@ plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands
                               xAxisLabel = "Position Relative to Dyad (bp)") {
   bulkCountsPlot = ggplot(bulkCountsData, aes_string("Dyad_Position", dataCol, color = "Domain")) +
     scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "forestgreen",
-                                  "RED" = "red", "YELLOW" = "gold2"), guide = FALSE) +
+                                  "RED" = "red", "YELLOW" = "gold2"), guide = "none") +
     geom_line() +
     labs(title = title, x = "Position Relative to Dyad (bp)", y = yAxisLabel) +
     facet_grid(factor(Timepoint, levels = expectedTimepoints)~Domain) +
