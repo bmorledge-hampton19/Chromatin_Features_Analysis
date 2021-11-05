@@ -101,11 +101,8 @@ smoothValues = function(middlePos, data, dataCol, averagingRadius = 5) {
 }
 
 
-plotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60,
-                           smoothTranslational = TRUE, fixedNRL = NULL,
-                           dataCol = "Normalized_Both_Strands", title = "", ylim = NULL,
-                           yAxisLabel = "Normalized Repair Reads",
-                           xAxisLabel = "Position Relative to Dyad (bp)") {
+parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "Normalized_Both_Strands",
+                                smoothTranslational = TRUE, fixedNRL = NULL) {
 
   # If dataSet is a string, get the relevant counts and periodicity data for the given data set name.
   if (is.character(dataSet)) {
@@ -146,14 +143,16 @@ plotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60,
 
   if (rotational) {
     # Color rotational positioning
-    countsData[Dyad_Position %in% minorInPositions | -Dyad_Position %in% minorInPositions, Color := "#1bcc44"]
-    countsData[Dyad_Position %in% minorOutPositions | -Dyad_Position %in% minorOutPositions, Color := "#993299"]
-    countsData[is.na(Color), Color := "Black"]
+    countsData[Dyad_Position %in% minorInPositions | -Dyad_Position %in% minorInPositions,
+               Periodic_Position_Color := "#1bcc44"]
+    countsData[Dyad_Position %in% minorOutPositions | -Dyad_Position %in% minorOutPositions,
+               Periodic_Position_Color := "#993299"]
+    countsData[is.na(Periodic_Position_Color), Periodic_Position_Color := "Black"]
   }
 
   if (rotationalPlus) {
     # Color linker DNA in linker+ plots.
-    countsData[Dyad_Position <= -73 | Dyad_Position >= 73, Color := "Gold"]
+    countsData[Dyad_Position <= -73 | Dyad_Position >= 73, Periodic_Position_Color := "Gold"]
   }
 
   if (translational) {
@@ -173,29 +172,69 @@ plotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60,
                                                              (73.5+x*nucRepLen):(-73.5+(x+1)*nucRepLen))))
 
     # Color translational positioning
-    countsData[Dyad_Position %in% nucleosomePositions | -Dyad_Position %in% nucleosomePositions, Color := "#0571b0"]
-    countsData[Dyad_Position %in% linkerPositions | -Dyad_Position %in% linkerPositions, Color := "#ca0020"]
+    countsData[Dyad_Position %in% nucleosomePositions | -Dyad_Position %in% nucleosomePositions,
+               Periodic_Position_Color := "#0571b0"]
+    countsData[Dyad_Position %in% linkerPositions | -Dyad_Position %in% linkerPositions,
+               Periodic_Position_Color := "#ca0020"]
   }
 
-  # Plot it!
-  periodicityPlot = ggplot(countsData, aes_string("Dyad_Position", dataCol, color = "Color")) +
-                    geom_path(size = 1.25, aes(group = 1))
-  if (rotationalPlus) {
-    periodicityPlot = periodicityPlot +
-      scale_color_identity(name = '', guide = "legend",
-                           breaks = c("#1bcc44", "#993299", "Gold"),
-                           labels = c("Minor-in", "Minor-out", "Linker"))
-  } else if (rotational) {
-    periodicityPlot = periodicityPlot +
-      scale_color_identity(name = '', guide = "legend",
-                           breaks = c("#1bcc44", "#993299"),
-                           labels = c("Minor-in", "Minor-out"))
-  } else if (translational) {
-    periodicityPlot = periodicityPlot +
-      scale_color_identity(name = '', guide = "legend",
-                           breaks = c("#0571b0", "#ca0020"),
-                           labels = c("Nucleosome","Linker"))
+  return(countsData)
+
+}
+
+
+# Plot the given periodicity data.
+# If singleDataSet is true, color the data based on the "color" variable to highlight
+# features of the (expected) periodicity.  Otherwise, assume that multiple periodicity
+# datasets are present and color them based on a required "Color_Domain" column.
+plotPeriodicity = function(countsData, singleDataSet = TRUE,
+                           dataCol = "Normalized_Both_Strands", title = "", ylim = NULL,
+                           yAxisLabel = "Normalized Repair Reads",
+                           xAxisLabel = "Position Relative to Dyad (bp)") {
+
+  if (singleDataSet) {
+
+    periodicityPlot = ggplot(countsData, aes_string("Dyad_Position", dataCol,
+                                                         color = "Periodic_Position_Color")) +
+      geom_path(size = 1.25, aes(group = 1))
+
+    # Determine whether the data is rotational, rotational+linker, or translational.
+    rotational = FALSE
+    rotationalPlus = FALSE
+    translational = FALSE
+    if (min(countsData$Dyad_Position) >= -73) {
+      rotational = TRUE
+    } else if (min(countsData$Dyad_Position) > -999) {
+      rotational = TRUE
+      rotationalPlus = TRUE
+    } else translational = TRUE
+
+    if (rotationalPlus) {
+      periodicityPlot = periodicityPlot +
+        scale_color_identity(name = '', guide = "legend",
+                             breaks = c("#1bcc44", "#993299", "Gold"),
+                             labels = c("Minor-in", "Minor-out", "Linker"))
+    } else if (rotational) {
+      periodicityPlot = periodicityPlot +
+        scale_color_identity(name = '', guide = "legend",
+                             breaks = c("#1bcc44", "#993299"),
+                             labels = c("Minor-in", "Minor-out"))
+    } else if (translational) {
+      periodicityPlot = periodicityPlot +
+        scale_color_identity(name = '', guide = "legend",
+                             breaks = c("#0571b0", "#ca0020"),
+                             labels = c("Nucleosome","Linker"))
+    }
+
+  } else {
+
+    periodicityPlot = ggplot(countsData, aes_string("Dyad_Position", dataCol,
+                                                         color = "Color_Domain")) +
+      geom_line(size = 1.25) +
+      scale_color_identity()
+
   }
+
   periodicityPlot = periodicityPlot +
     coord_cartesian(ylim = ylim) +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
@@ -208,21 +247,23 @@ plotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60,
 }
 
 
+# Combines the parsePeriodicityData and plotPeriodicity functions into one convenience function
+parseAndPlotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "Normalized_Both_Strands",
+                                   smoothTranslational = TRUE, fixedNRL = NULL,
+                                   title = "", ylim = NULL,
+                                   yAxisLabel = "Normalized Repair Reads",
+                                   xAxisLabel = "Position Relative to Dyad (bp)") {
+
+  parsedData = parsePeriodicityData(dataSet, rotationalOnlyCutoff, dataCol, smoothTranslational, fixedNRL)
+  plotPeriodicity(parsedData, TRUE, dataCol, title, ylim, yAxisLabel, xAxisLabel)
+
+}
+
+
 # Plot the plus and minus strands (aligned) as two lines on the same graph.
-plotPlusAndMinus = function(dataSet, title = "", ylim = NULL,
+plotPlusAndMinus = function(countsData, title = "", ylim = NULL,
                             yAxisLabel = "Normalized Repair Reads",
                             xAxisLabel = "Position Relative to Dyad (bp)") {
-
-  # If dataSet is a string, get the relevant counts and periodicity data for the given data set name.
-  if (is.character(dataSet)) {
-    if (dataSet %in% names(mutperiodData$normalizedNucleosomeCountsTables)) {
-      countsData = mutperiodData$normalizedNucleosomeCountsTables[[dataSet]]
-    } else if (dataSet %in% names(mutperiodData$rawNucleosomeCountsTables)) {
-      countsData = mutperiodData$rawNucleosomeCountsTables[[dataSet]]
-    } else stop("Unknown data set name.")
-  }
-  # Otherwise, the data set that was passed in should just be the counts data.
-  else countsData = dataSet
 
   plusStrandCounts = countsData[[which(grepl("Plus_Strand", colnames(countsData)))]]
   minusStrandCounts = countsData[[which(grepl("Minus_Strand", colnames(countsData)))]]
