@@ -17,7 +17,7 @@ def binAcrossGenome(genomeFeatureFilePaths: List[str], chromSizesFilePath, binSi
 
     for genomeFeatureFilePath in genomeFeatureFilePaths:
 
-        print("Working in:", os.path.basename(genomeFeatureFilePath))
+        print("\nWorking in:", os.path.basename(genomeFeatureFilePath))
 
         # Generate an output file path
         binnedFeaturesFilePath = genomeFeatureFilePath.rsplit('.', 1)[0] + '_' + str(binSize) + "bp_binned.tsv"
