@@ -12,9 +12,8 @@ parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA, b
   binnedCountsTable[,Bin_Start := vapply(strsplit(`Bin_Start-End`, '-'),
                                          function(x) as.integer(x[1]), FUN.VALUE = integer(1))]
 
-  # Create a column for counts normalized by total counts
-  binnedCountsTable[Feature_Counts == 0, Feature_Counts := 1]# Pseudo-counts!
-  binnedCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts) * 10^6]
+  # Create a column for normalized counts
+  binnedCountsTable[,Normalized_Counts := Feature_Counts / median(Feature_Counts)]
 
   # Add a column for the majority color domain if the binned color domains file path was given.
   if (!is.na(binnedColorDomainsFilePath)) {
@@ -29,11 +28,21 @@ parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA, b
     backgroundBinCountsTable[,Bin_Start := vapply(strsplit(`Bin_Start-End`, '-'),
                                            function(x) as.integer(x[1]), FUN.VALUE = integer(1))]
 
-    backgroundBinCountsTable[Feature_Counts == 0, Feature_Counts := 1]# Pseudo-counts!
-    backgroundBinCountsTable[,Counts_Per_Million := Feature_Counts / sum(Feature_Counts) * 10^6]
+    backgroundBinCountsTable[,Normalized_Counts := Feature_Counts / median(Feature_Counts)]
+
+    # Generate pseudo-count values based on the minimum value in either set of normalized counts
+    pseudoCountValue = min(c(binnedCountsTable[Normalized_Counts > 0, Normalized_Counts]
+                             ,backgroundBinCountsTable[Normalized_Counts > 0, Normalized_Counts]))
+    binnedCountsTable[Normalized_Counts == 0, Normalized_Counts := pseudoCountValue]
+    backgroundBinCountsTable[Normalized_Counts == 0, Normalized_Counts := pseudoCountValue]
 
     # Create a log ratio column in the main counts file using the complementary data set.
-    binnedCountsTable[, Log_Ratio := log(Counts_Per_Million/backgroundBinCountsTable$Counts_Per_Million,2)]
+    binnedCountsTable[, Log_Ratio := log(Normalized_Counts/backgroundBinCountsTable$Normalized_Counts,2)]
+  }
+
+  # Otherwise, just add in pseudo counts for the main data set.
+  else {
+    binnedCountsTable[Normalized_Counts == 0, Normalized_Counts := min(binnedCountsTable$Normalized_Counts)]
   }
 
   return(binnedCountsTable)
@@ -47,32 +56,52 @@ parseGeneBinData = function(geneBinsCountsFilePath, backgroundFilePath = NA) {
   # Read in the data
   geneBinsCountsTable = fread(geneBinsCountsFilePath)
 
-  # Create columns for counts normalized by total counts
-  geneBinsCountsTable[Coding_Strand_Counts == 0, Coding_Strand_Counts := 1]# Pseudo-counts!
-  geneBinsCountsTable[Noncoding_Strand_Counts == 0, Noncoding_Strand_Counts := 1]# More Pseudo-counts!
+  # Create columns for normalized counts
   totalCounts = sum(geneBinsCountsTable$Coding_Strand_Counts) +
                 sum(geneBinsCountsTable$Noncoding_Strand_Counts)
-  geneBinsCountsTable[,Noncoding_Counts_Per_Million := Noncoding_Strand_Counts / totalCounts * 10^6]
-  geneBinsCountsTable[,Coding_Counts_Per_Million := Coding_Strand_Counts / totalCounts * 10^6]
+  geneBinsCountsTable[,Noncoding_Normalized_Counts := Noncoding_Strand_Counts / median(totalCounts)]
+  geneBinsCountsTable[,Coding_Normalized_Counts := Coding_Strand_Counts / median(totalCounts)]
 
   # Add in a complementary (background) data set (If we have the relevant file).
   if (!is.na(backgroundFilePath)) {
     backgroundCountsTable = fread(backgroundFilePath)
 
-    backgroundCountsTable[Coding_Strand_Counts == 0, Coding_Strand_Counts := 1]# Pseudo-counts!
-    backgroundCountsTable[Noncoding_Strand_Counts == 0, Noncoding_Strand_Counts := 1]# More Pseudo-counts!
     totalCounts = sum(backgroundCountsTable$Coding_Strand_Counts) +
       sum(backgroundCountsTable$Noncoding_Strand_Counts)
-    backgroundCountsTable[,Coding_Counts_Per_Million := Coding_Strand_Counts / totalCounts * 10^6]
-    backgroundCountsTable[,Noncoding_Counts_Per_Million := Noncoding_Strand_Counts / totalCounts * 10^6]
+    backgroundCountsTable[,Coding_Normalized_Counts := Coding_Strand_Counts / median(totalCounts)]
+    backgroundCountsTable[,Noncoding_Normalized_Counts := Noncoding_Strand_Counts / median(totalCounts)]
+
+    # Generate pseudo-count values based on the minimum (non-zero) value across all sets of normalized counts
+    pseudoCountValue = min(c(geneBinsCountsTable[Noncoding_Normalized_Counts > 0, Noncoding_Normalized_Counts],
+                             geneBinsCountsTable[Coding_Normalized_Counts > 0, Coding_Normalized_Counts],
+                             backgroundCountsTable[Noncoding_Normalized_Counts > 0, Noncoding_Normalized_Counts],
+                             backgroundCountsTable[Coding_Normalized_Counts > 0, Coding_Normalized_Counts]))
+    geneBinsCountsTable[Noncoding_Normalized_Counts == 0,
+                        Noncoding_Normalized_Counts := pseudoCountValue]
+    geneBinsCountsTable[Coding_Normalized_Counts == 0,
+                        Coding_Normalized_Counts := pseudoCountValue]
+    backgroundCountsTable[Noncoding_Normalized_Counts == 0,
+                          Noncoding_Normalized_Counts := pseudoCountValue]
+    backgroundCountsTable[Coding_Normalized_Counts == 0,
+                          Coding_Normalized_Counts := pseudoCountValue]
 
     # Create a log ratio column in the main counts file using the complementary data set.
-    geneBinsCountsTable[, Coding_Log_Ratio := log(Coding_Counts_Per_Million/
-                                                  backgroundCountsTable$Coding_Counts_Per_Million,2)]
-    geneBinsCountsTable[, Noncoding_Log_Ratio := log(Noncoding_Counts_Per_Million/
-                                                     backgroundCountsTable$Noncoding_Counts_Per_Million,2)]
+    geneBinsCountsTable[, Coding_Log_Ratio := log(Coding_Normalized_Counts/
+                                                  backgroundCountsTable$Coding_Normalized_Counts,2)]
+    geneBinsCountsTable[, Noncoding_Log_Ratio := log(Noncoding_Normalized_Counts/
+                                                     backgroundCountsTable$Noncoding_Normalized_Counts,2)]
 
     geneBinsCountsTable[, TS_Vs_NTS_Log_Ratio := Noncoding_Log_Ratio - Coding_Log_Ratio]
+  }
+
+  # Otherwise, just add in pseudo counts for the main data set.
+  else {
+    pseudoCountValue = min(c(geneBinsCountsTable[Noncoding_Normalized_Counts > 0, Noncoding_Normalized_Counts],
+                             geneBinsCountsTable[Coding_Normalized_Counts > 0, Coding_Normalized_Counts]))
+    geneBinsCountsTable[Noncoding_Normalized_Counts == 0,
+                        Noncoding_Normalized_Counts := pseudoCountValue]
+    geneBinsCountsTable[Coding_Normalized_Counts == 0,
+                        Coding_Normalized_Counts := pseudoCountValue]
   }
 
   return(geneBinsCountsTable)
@@ -155,21 +184,21 @@ binInChromosomesAcrossDataSets = function(binnedCountsTable, compBinCountsTable,
     # Plot the first data set...
     relevantCountsTable = binnedCountsTable[Chromosome == chromosome]
 
-    barplot(relevantCountsTable[, Counts_Per_Million],
+    barplot(relevantCountsTable[, Normalized_Counts],
             names.arg = relevantCountsTable[, Bin_Start], col = "#ca0020", border = "#ca0020",
-            xlab = "Chromosome Position", ylab = "Counts Per Million Total", main = paste(title, chromosome))
+            xlab = "Chromosome Position", ylab = "Normalized Counts", main = paste(title, chromosome))
 
     # Then overlay the second data set!
     par(new = T)
 
     compRelevantCountsTable = compBinCountsTable[Chromosome == chromosome]
 
-    barplot(compRelevantCountsTable[, Counts_Per_Million], yaxt = 'n',
+    barplot(compRelevantCountsTable[, Normalized_Counts], yaxt = 'n',
             names.arg = compRelevantCountsTable[, Bin_Start], col = "#0571b0", border = "#0571b0")
 
     # What if we keep track of where they intersect?
     par(new = T)
-    barplot(pmin(relevantCountsTable$Counts_Per_Million, compRelevantCountsTable$Counts_Per_Million), yaxt = 'n',
+    barplot(pmin(relevantCountsTable$Normalized_Counts, compRelevantCountsTable$Normalized_Counts), yaxt = 'n',
             names.arg = compRelevantCountsTable[, Bin_Start], col = "#683968", border = "#683968")
 
 
@@ -220,7 +249,7 @@ createGgplotBinPlots = function(binnedCountsTable, chromosomeSets, yData = "Log_
 SCATTER = 1
 BOXPLOT = 2
 plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "", yData = "Log_Ratio",
-                                    yAxisLabel = "Log Ratio", ylim = NULL) {
+                                    yAxisLabel = "Log Ratio", ylim = NULL, facetColumn = NULL) {
 
   # Deprecated?
   #
@@ -250,6 +279,11 @@ plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "", yDa
   thisPlot = thisPlot + geom_boxplot(outlier.shape = NA)
   }
   else stop("Invalid \"plotType\" argument given.")
+
+  # Create the facet plot if requested.
+  if (!is.null(facetColumn)) {
+    thisPlot = thisPlot + facet_grid(facetColumn)
+  }
 
   # Finishing touches
   thisPlot = thisPlot + labs(title = title, y = yAxisLabel) +
