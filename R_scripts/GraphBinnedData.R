@@ -301,12 +301,27 @@ plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "", yDa
 # Graphs median log_ratio counts for different domains across different time points.
 # Requires two parallel lists of binned counts tables and time points (as numeric values).
 plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "",
-                                       xAxisLabel = "Timepoint", yAxisLabel = "Log Ratio", ylim = NULL) {
+                                       xAxisLabel = "Timepoint", yAxisLabel = "Log Ratio", ylim = NULL,
+                                       lineTypeColumn = NULL, lineTypeMapping = NULL) {
 
-  masterMedianTable = rbindlist(mapply(getMedianTable, binnedCountsTables, timePoints, SIMPLIFY = FALSE))
+  masterMedianTable = rbindlist(mapply(getMedianTable, binnedCountsTables,
+                                       timePoints, MoreArgs = list(lineTypeColumn), SIMPLIFY = FALSE))
 
   # Graph a line for each color.
-  ggplot(masterMedianTable, aes(Time, Median, color = Majority_Domain_Color)) +
+  thisPlot = ggplot(masterMedianTable, aes(Time, Median, color = Majority_Domain_Color))
+
+  # If requested, change the linetype based on the values in the given column
+  if (!is.null(lineTypeColumn)) {
+
+    thisPlot = thisPlot + aes_string(linetype = lineTypeColumn)
+
+    if (!is.null(lineTypeMapping)) {
+      thisPlot = thisPlot + scale_linetype_manual(values = lineTypeMapping, name = NULL)
+    }
+
+  }
+
+  thisPlot = thisPlot +
     scale_color_identity() +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
     geom_line() + geom_point() +
@@ -314,15 +329,24 @@ plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "
     theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
           axis.text = element_text(size = 12), legend.text = element_text(size = 12),)
 
+  print(thisPlot)
+
 }
 
 
 # A function for producing a table of median log_ratio values with the domain color and
 # time point (as a numeric value) included as columns.
-getMedianTable = function(binnedCountsTable, timePoint) {
+getMedianTable = function(binnedCountsTable, timePoint, lineTypeColumn) {
 
-  return(binnedCountsTable[Majority_Domain_Color != "GRAY" & Majority_Domain_Color != "WHITE",
-                           .(Median = median(Log_Ratio), Time = timePoint),
-                           Majority_Domain_Color])
+  if (is.null(lineTypeColumn)) {
+    return(binnedCountsTable[Majority_Domain_Color != "GRAY" & Majority_Domain_Color != "WHITE",
+                             .(Median = median(Log_Ratio), Time = timePoint),
+                             Majority_Domain_Color])
+  } else {
+    return(binnedCountsTable[Majority_Domain_Color != "GRAY" & Majority_Domain_Color != "WHITE",
+                             .(Median = median(Log_Ratio), Time = timePoint),
+                             by = setNames(list(get("Majority_Domain_Color"), get(lineTypeColumn)),
+                                           c("Majority_Domain_Color",lineTypeColumn))])
+  }
 
 }
