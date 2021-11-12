@@ -1,6 +1,19 @@
 library(data.table)
 library(ggplot2)
 
+
+# computes a scaling factor from given raw and background file paths.
+# Right now, this function assumes the input file paths have a "Feature_Counts" column to determine counts from.
+getScalingFactor = function(rawCountsFilePath, backgroundCountsFilePath) {
+
+  rawCountsTable = fread(rawCountsFilePath)
+  backgroundCountsTable = fread(backgroundCountsFilePath)
+
+  return(sum(rawCountsTable$Feature_Counts)/sum(backgroundCountsTable$Feature_Counts))
+
+}
+
+
 # Given the path to a binned counts file (and potentially paths to files containing info on the domains
 # or background binned counts) return a binned counts data.table.
 parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA,
@@ -82,8 +95,6 @@ parseGeneBinData = function(geneBinsCountsFilePath, backgroundFilePath = NA,
                       ( sum(geneBinsCountsTable$Background_Coding_Strand_Counts) +
                         sum(geneBinsCountsTable$Background_Noncoding_Strand_Counts) )
     }
-
-    # Create a log ratio column in the main counts file using the complementary data set.
 
     # Remove rows with 0 counts.
     geneBinsCountsTable = geneBinsCountsTable[Coding_Strand_Counts > 0 & Noncoding_Strand_Counts > 0 &
