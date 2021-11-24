@@ -290,7 +290,7 @@ plotPlusAndMinus = function(countsData, title = "", ylim = NULL,
 # Add information on timepoint and domain to a given data table.  If none of the expected timepoints or
 # none of the expected domains are present, return an empty data.table.
 # Also, smooths translational data.
-addTimepointAndDomainInfo = function(dataSetName, dataCol = "Normalized_Both_Strands",
+addTimepointAndDomainInfo = function(dataSetName, smoothCols = list("Normalized_Both_Strands"),
                                      expectedTimepoints = c("10m", "30m", "8h", "16h", "24h"),
                                      expectedDomains = c("BLACK", "BLUE", "GREEN", "RED", "YELLOW")) {
 
@@ -309,7 +309,9 @@ addTimepointAndDomainInfo = function(dataSetName, dataCol = "Normalized_Both_Str
 
   if (grepl("nuc-group", dataSetName, fixed = TRUE)) {
     countsData = copy(countsData)
-    countsData[, (dataCol) := sapply(countsData$Dyad_Position, smoothValues, data = countsData, dataCol = dataCol)]
+    captureOutput = lapply(smoothCols, function(dataCol)
+      countsData[, (dataCol) := sapply(countsData$Dyad_Position, smoothValues, data = countsData, dataCol = dataCol)]
+    )
   }
 
   return(countsData[, c("Timepoint", "Domain") := list(rep(timepoint, .N), rep(domain, .N))])
