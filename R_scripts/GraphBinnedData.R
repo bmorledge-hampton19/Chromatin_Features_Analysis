@@ -9,7 +9,7 @@ getScalingFactor = function(rawCountsFilePath, backgroundCountsFilePath) {
   rawCountsTable = fread(rawCountsFilePath)
   backgroundCountsTable = fread(backgroundCountsFilePath)
 
-  return(sum(rawCountsTable$Feature_Counts)/sum(backgroundCountsTable$Feature_Counts))
+  return(sum(backgroundCountsTable$Feature_Counts)/sum(rawCountsTable$Feature_Counts))
 
 }
 
@@ -50,7 +50,7 @@ parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA,
 
     # If no scaling factor was given, compute it from the given data.
     if (is.null(scalingFactor)) {
-      scalingFactor = sum(binnedCountsTable$Feature_Counts)/sum(binnedCountsTable$Background_Feature_Counts)
+      scalingFactor = sum(binnedCountsTable$Background_Feature_Counts)/sum(binnedCountsTable$Feature_Counts)
     }
 
     # Remove rows with 0 counts.
@@ -58,7 +58,7 @@ parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA,
 
     # Normalize and scale!
     rawToBackgroundRatio = binnedCountsTable$Feature_Counts / binnedCountsTable$Background_Feature_Counts
-    binnedCountsTable[, Scaled_Raw_To_Background_Ratio := rawToBackgroundRatio / scalingFactor]
+    binnedCountsTable[, Scaled_Raw_To_Background_Ratio := rawToBackgroundRatio * scalingFactor]
     binnedCountsTable[, Log_Ratio := log(Scaled_Raw_To_Background_Ratio,2)]
   }
 
@@ -90,10 +90,10 @@ parseGeneBinData = function(geneBinsCountsFilePath, backgroundFilePath = NA,
 
     # If no scaling factor was given, compute it from the given data.
     if (is.null(scalingFactor)) {
-      scalingFactor = sum(geneBinsCountsTable$Coding_Strand_Counts) +
-                      sum(geneBinsCountsTable$Noncoding_Strand_Counts) /
-                      ( sum(geneBinsCountsTable$Background_Coding_Strand_Counts) +
-                        sum(geneBinsCountsTable$Background_Noncoding_Strand_Counts) )
+      scalingFactor = sum(geneBinsCountsTable$Background_Coding_Strand_Counts) +
+                      sum(geneBinsCountsTable$Background_Noncoding_Strand_Counts) /
+                      ( sum(geneBinsCountsTable$Coding_Strand_Counts) +
+                        sum(geneBinsCountsTable$Noncoding_Strand_Counts) )
     }
 
     # Remove rows with 0 counts.
@@ -107,10 +107,10 @@ parseGeneBinData = function(geneBinsCountsFilePath, backgroundFilePath = NA,
     noncodingRawToBackgroundRatio = geneBinsCountsTable$Noncoding_Strand_Counts /
                                     geneBinsCountsTable$Background_Noncoding_Strand_Counts
 
-    geneBinsCountsTable[, Scaled_Coding_Ratio := codingRawToBackgroundRatio / scalingFactor]
+    geneBinsCountsTable[, Scaled_Coding_Ratio := codingRawToBackgroundRatio * scalingFactor]
     geneBinsCountsTable[, Coding_Log_Ratio := log(Scaled_Coding_Ratio,2)]
 
-    geneBinsCountsTable[, Scaled_Noncoding_Ratio := noncodingRawToBackgroundRatio / scalingFactor]
+    geneBinsCountsTable[, Scaled_Noncoding_Ratio := noncodingRawToBackgroundRatio * scalingFactor]
     geneBinsCountsTable[, Noncoding_Log_Ratio := log(Scaled_Noncoding_Ratio,2)]
 
     geneBinsCountsTable[, TS_Vs_NTS_Log_Ratio := Noncoding_Log_Ratio - Coding_Log_Ratio]
