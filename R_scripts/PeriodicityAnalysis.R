@@ -265,8 +265,8 @@ plotPlusAndMinus = function(countsData, title = "", ylim = NULL,
                             yAxisLabel = "Normalized Repair Reads",
                             xAxisLabel = "Position Relative to Dyad (bp)") {
 
-  plusStrandCounts = countsData[[which(grepl("Plus_Strand", colnames(countsData)))]]
-  minusStrandCounts = countsData[[which(grepl("Minus_Strand", colnames(countsData)))]]
+  plusStrandCounts = countsData[[which(grepl("Plus_Strand", colnames(countsData)))[1]]]
+  minusStrandCounts = countsData[[which(grepl("Minus_Strand", colnames(countsData)))[1]]]
 
   strandCountsData = data.table(Dyad_Position = countsData[,Dyad_Position],
                                 Plus_Strand_Counts = plusStrandCounts,
