@@ -7,7 +7,7 @@ ROTATIONAL = 1
 TRANSLATIONAL = 2
 # Returns a lomb object for the given data.  (Usually nucleosome self-count data)
 getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = NA,
-                         showLspWarnings = FALSE) {
+                         rotationalPosCutoff = 60, countsColumnName = NULL, showLspWarnings = FALSE) {
 
   if (rotOrTrans == ROTATIONAL) {
     lombFrom = 5
@@ -17,20 +17,35 @@ getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = 
     lombTo = 250
   } else stop("Invalid \"rotOrTrans\" argument given.")
 
-  if ("Normalized_Both_Strands" %in% colnames(countsTable)) {
-    colnames(countsTable)[which(colnames(countsTable) == "Normalized_Both_Strands")] = "Both_Strands_Counts"
-  }
+  # If no column name for counts was given, try to satisfy one of three default conditions.
+  if (is.null(countsColumnName)) {
+    if ("Normalized_Both_Strands" %in% colnames(countsTable)) {
+      colnames(countsTable)[which(colnames(countsTable) == "Normalized_Both_Strands")] = "Counts"
+    } else if ("Both_Strands_Counts" %in% colnames(countsTable)) {
+      colnames(countsTable)[which(colnames(countsTable) == "Both_Strands_Counts")] = "Counts"
+    } else if (length(colnames(countsTable) == 2 && colnames(CountsTable)[1] == "Dyad_Position")) {
+      colnames(countsTable)[2] = "Counts"
+    } else stop("No counts column name given and no default conditions satisfied.")
 
-  if (is.na(nucleosomeExclusionBoundary)) {
-    counts = countsTable$Both_Strands_Counts
+  # If a column name for counts was given, make sure that it exists and then rename it.
   } else {
-    counts = countsTable[Dyad_Position > nucleosomeExclusionBoundary |
-                           Dyad_Position < -nucleosomeExclusionBoundary, Both_Strands_Counts]
+    if (countsColumnName %in% colnames(countsTable)) {
+      colnames(countsTable)[which(colnames(countsTable) == countsColumnName)] = "Counts"
+    } else stop("Given counts column name is not present in the column names for the given counts table.")
   }
 
-  if (is.na(nucleosomeExclusionBoundary)) {
+  if (rotOrTrans == ROTATIONAL) {
+    if (!is.na(nucleosomeExclusionBoundary)) stop("nucleosome exclusion boundary should be NA for rotational data.")
+    counts = countsTable[Dyad_Position <= rotationalPosCutoff &
+                           Dyad_Position >= -rotationalPosCutoff, Counts]
+    times = countsTable[Dyad_Position <= rotationalPosCutoff &
+                          Dyad_Position >= -rotationalPosCutoff, Dyad_Position]
+  } else if (is.na(nucleosomeExclusionBoundary)) {
+    counts = countsTable$Counts
     times = countsTable$Dyad_Position
   } else {
+    counts = countsTable[Dyad_Position > nucleosomeExclusionBoundary |
+                           Dyad_Position < -nucleosomeExclusionBoundary, Counts]
     times = countsTable[Dyad_Position > nucleosomeExclusionBoundary |
                           Dyad_Position < -nucleosomeExclusionBoundary, Dyad_Position]
   }
