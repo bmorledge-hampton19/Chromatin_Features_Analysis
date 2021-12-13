@@ -229,12 +229,15 @@ binInChromosomesAcrossDataSets = function(binnedCountsTable, compBinCountsTable,
 createGgplotBinPlots = function(binnedCountsTable, chromosomeSets, yData = "Log_Ratio",
                                 yAxisLabel = "Log Ratio", title = "", ylim = NULL, colorPlot = TRUE) {
 
+  binnedCountsTable = copy(binnedCountsTable)
+  binnedCountsTable[,Bin_Start := Bin_Start / 1000000]
+
   for (chromosomeSet in chromosomeSets) {
 
     plot = ggplot(binnedCountsTable[Chromosome %in% chromosomeSet],
                   aes_string("Bin_Start", yData)) +
       geom_bar(stat = "identity", color = "Black", fill = "Black") +
-      labs(title = title, x = "Chromosome Position", y = yAxisLabel) +
+      labs(title = title, x = "Chromosome Position (Mb)", y = yAxisLabel) +
       facet_grid(~Chromosome, space = "free", scales = "free") +
       coord_cartesian(ylim = ylim) +
       theme(plot.title = element_text(size = 20, hjust = 0.5),
