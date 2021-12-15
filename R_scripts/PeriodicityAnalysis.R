@@ -140,7 +140,8 @@ parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "N
     } else if (dataSet %in% names(mutperiodData$rawNucleosomeCountsTables)) {
       countsData = mutperiodData$rawNucleosomeCountsTables[[dataSet]]
     } else stop("Unknown data set name.")
-    periodicityData = as.list(mutperiodData$periodicityResults[Data_Set == dataSet])
+    periodicityData = mutperiodData$periodicityResults[Data_Set == dataSet]
+    if (dim(periodicityData)[1] > 1) stop("Multiple periodicity data sets found for given name.")
   }
   # Otherwise, the data set that was passed in should just be the counts data.
   else {
