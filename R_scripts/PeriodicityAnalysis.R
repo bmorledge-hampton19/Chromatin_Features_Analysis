@@ -6,8 +6,8 @@ library(ggplot2)
 ROTATIONAL = 1
 TRANSLATIONAL = 2
 # Returns a lomb object for the given data.  (Usually nucleosome self-count data)
-getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = NA,
-                         rotationalPosCutoff = 60, countsColumnName = NULL, showLspWarnings = FALSE) {
+getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = NA, rotationalPosCutoff = 60,
+                        countsColumnName = NULL, plotResult = FALSE, showLspWarnings = FALSE) {
 
   if (rotOrTrans == ROTATIONAL) {
     lombFrom = 5
@@ -50,8 +50,22 @@ getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = 
                           Dyad_Position < -nucleosomeExclusionBoundary, Dyad_Position]
   }
 
-  if (showLspWarnings) return(lsp(counts, times, lombFrom, lombTo, "period", 100, plot = FALSE))
-  else suppressWarnings(return(lsp(counts, times, lombFrom, lombTo, "period", 100, plot = FALSE)))
+  if (showLspWarnings) return(lsp(counts, times, lombFrom, lombTo, "period", 100, plot = plotResult))
+  else suppressWarnings(return(lsp(counts, times, lombFrom, lombTo, "period", 100, plot = plotResult)))
+
+}
+
+
+# A helper function for when I want to quickly get lomb results with SNR.
+getPeakPeriodicityAndSNR = function(lombResult) {
+
+  # Get the peak periodicity and its associated SNR
+  peakPeriodicity = lombResult$peak.at[1]
+  noiseBooleanVector = (lombResult$scanned < peakPeriodicity - 0.5
+                        | lombResult$scanned > peakPeriodicity + 0.5)
+  SNR = lombResult$peak / median(lombResult$power[noiseBooleanVector])
+
+  return(c(peakPeriodicity,SNR))
 
 }
 
