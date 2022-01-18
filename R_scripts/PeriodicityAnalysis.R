@@ -353,7 +353,7 @@ plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands
                               expectedTimepoints = c("10m", "30m", "8h", "16h", "24h"),
                               title = "", xBreaks = NULL, ylim = NULL,
                               yAxisLabel = "Normalized Repair Reads",
-                              xAxisLabel = "Position Relative to Dyad (bp)") {
+                              xAxisLabel = "Position Relative to Dyad (bp)", textSizeScaleFactor = 1) {
   bulkCountsPlot = ggplot(bulkCountsData, aes_string("Dyad_Position", dataCol, color = "Domain")) +
     scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "forestgreen",
                                   "RED" = "red", "YELLOW" = "gold2"), guide = "none") +
@@ -370,9 +370,10 @@ plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands
   }
   bulkCountsPlot = bulkCountsPlot +
     scale_y_continuous(n.breaks = 3) +
-    theme(plot.title = element_text(size = 20, hjust = 0.5),
-          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
-          strip.text = element_text(size = 15))
+    theme(plot.title = element_text(size = 20*textSizeScaleFactor, hjust = 0.5),
+          axis.title = element_text(size = 15*textSizeScaleFactor),
+          axis.text = element_text(size = 12*textSizeScaleFactor),
+          strip.text = element_text(size = 15*textSizeScaleFactor))
 
   print(bulkCountsPlot)
 

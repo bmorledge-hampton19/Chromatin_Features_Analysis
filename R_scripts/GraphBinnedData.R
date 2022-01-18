@@ -227,7 +227,8 @@ binInChromosomesAcrossDataSets = function(binnedCountsTable, compBinCountsTable,
 # (Could probably make more modular in the future is some features are not desired.)
 # chromosomeSets example: list("chrX", "chrY", c("chr2L","chr2R"), c("chr3L","chr3R"), "chr4")
 createGgplotBinPlots = function(binnedCountsTable, chromosomeSets, yData = "Log_Ratio",
-                                yAxisLabel = "Log Ratio", title = "", ylim = NULL, colorPlot = TRUE) {
+                                yAxisLabel = "Log Ratio", title = "", ylim = NULL, colorPlot = TRUE,
+                                textSizeScaleFactor = 1.5) {
 
   binnedCountsTable = copy(binnedCountsTable)
   binnedCountsTable[,Bin_Start := Bin_Start / 1000000]
@@ -240,9 +241,11 @@ createGgplotBinPlots = function(binnedCountsTable, chromosomeSets, yData = "Log_
       labs(title = title, x = "Chromosome Position (Mb)", y = yAxisLabel) +
       facet_grid(~Chromosome, space = "free", scales = "free") +
       coord_cartesian(ylim = ylim) +
-      theme(plot.title = element_text(size = 20, hjust = 0.5),
-            axis.title = element_text(size = 15), axis.text = element_text(size = 12),
-            strip.text = element_text(size = 15), panel.spacing = unit(0.1, "lines"), legend.position = "none")
+      theme(plot.title = element_text(size = 20*textSizeScaleFactor, hjust = 0.5),
+            axis.title = element_text(size = 15*textSizeScaleFactor),
+            axis.text = element_text(size = 12*textSizeScaleFactor),
+            strip.text = element_text(size = 15*textSizeScaleFactor),
+            panel.spacing = unit(0.1, "lines"), legend.position = "none")
 
     if (colorPlot) {
       plot = plot + geom_bar(aes(color = Majority_Domain_Color, fill = Majority_Domain_Color), stat = "identity") +
