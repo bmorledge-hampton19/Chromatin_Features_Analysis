@@ -114,11 +114,56 @@ plotLombResult = function(lombData, title = "", xAxisLabel = "Periods",
 
 ### Modified from plotting tests in run_MutperiodR (might backport later, idk.)
 
+# Defines both individual positions (for coloring) and regions (for grouping with geom_path),
+# so this code looks like a hot mess.
+
 # From Cui and Zhurkin, 2010 with 1 added to each side and half-base positions included.
-minorInPositions = c(4:9-74, 14:19-74, 25:30-74, 36:41-74, 46:51-74, 56:61-74, 66:71-74,
-                     5:9-74.5, 15:19-74.5, 26:30-74.5, 37:41-74.5, 47:51-74.5, 57:61-74.5, 67:71-74.5)
-minorOutPositions = c(9:14-74, 20:24-74, 31:35-74, 41:46-74 ,51:56-74, 61:66-74,
-                      10:14-74.5, 21:24-74.5, 32:35-74.5, 42:46-74.5, 52:56-74.5, 62:66-74.5)
+minorInRegions = list(c(4:9-74,5:9-74.5), c(14:19-74,15:19-74.5), c(25:30-74,26:30-74.5), c(36:41-74,37:41-74.5),
+                      c(46:51-74,47:51-74.5), c(56:61-74,57:61-74.5), c(66:71-74,67:71-74.5))
+minorInRegions = append(minorInRegions, lapply(rev(minorInRegions), function(x) -rev(x)))
+names(minorInRegions) = lapply(seq_along(minorInRegions), function(i) paste0("Minor_In_Region_",i))
+minorInPositions = unlist(minorInRegions, use.names = FALSE)
+
+minorOutRegions = list(c(9:14-74,10:14-74.5), c(20:24-74,21:24-74.5), c(31:35-74,32:35-74.5),
+                       c(41:46-74,42:46-74.5), c(51:56-74,52:56-74.5), c(61:66-74,62:66-74.5))
+minorOutRegions = append(minorOutRegions, lapply(rev(minorOutRegions), function(x) -rev(x)))
+names(minorOutRegions) = lapply(seq_along(minorOutRegions), function(i) paste0("Minor_Out_Region_",i))
+minorOutPositions = unlist(minorOutRegions, use.names = FALSE)
+
+intermediatePositions =
+  seq(-73,73,0.5)[!(seq(-73,73,0.5) %in% minorInPositions | seq(-73,73,0.5) %in% minorOutPositions)]
+
+intermediateRegions = list()
+currentIntermediateRegion = c()
+lastIntermediatePosition = NULL
+
+for (intermediatePosition in intermediatePositions) {
+
+  if (!is.null(lastIntermediatePosition) && intermediatePosition - lastIntermediatePosition != 0.5) {
+    intermediateRegions[[length(intermediateRegions) + 1]] = currentIntermediateRegion
+    currentIntermediateRegion = c()
+  }
+
+  currentIntermediateRegion = append(currentIntermediateRegion,intermediatePosition)
+  lastIntermediatePosition = intermediatePosition
+
+}
+intermediateRegions = append(intermediateRegions, currentIntermediateRegion)
+
+names(intermediateRegions) = lapply(seq_along(intermediateRegions), function(i) paste0("Intermediate_Region_",i))
+
+linkerRegions = list(Linker_Region_1 = seq(-999,-73,0.5), linker_Region_2 = seq(73,999,0.5))
+
+# Make a data.table with dyad positions and group ID's
+rotationalRegionIDs = rbindlist(lapply(
+  list(minorInRegions, minorOutRegions, intermediateRegions, linkerRegions), FUN = function(x) {
+    rbindlist(
+      mapply(function(pos,id) data.table(Dyad_Position = pos, Group_ID = id), x, names(x), SIMPLIFY = FALSE)
+    )
+  }
+))
+setkey(rotationalRegionIDs, Dyad_Position)
+
 
 # Average across 11 base pairs centered on the given position.
 smoothValues = function(middlePos, data, dataCol, averagingRadius = 5) {
@@ -148,6 +193,7 @@ parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "N
     countsData = dataSet
     periodicityData = NULL
   }
+  setkey(countsData, Dyad_Position)
 
   # Determine whether the data is rotational, rotational+linker, or translational.
   rotational = FALSE
@@ -173,11 +219,15 @@ parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "N
 
   if (rotational) {
     # Color rotational positioning
-    countsData[Dyad_Position %in% minorInPositions | -Dyad_Position %in% minorInPositions,
+    countsData[Dyad_Position %in% minorInPositions,
                Periodic_Position_Color := "#1bcc44"]
-    countsData[Dyad_Position %in% minorOutPositions | -Dyad_Position %in% minorOutPositions,
+    countsData[Dyad_Position %in% minorOutPositions,
                Periodic_Position_Color := "#993299"]
     countsData[is.na(Periodic_Position_Color), Periodic_Position_Color := "Black"]
+
+    # Add in group IDs
+    countsData = countsData[rotationalRegionIDs, nomatch = NULL]
+
   }
 
   if (rotationalPlus) {
@@ -206,6 +256,9 @@ parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "N
                Periodic_Position_Color := "#0571b0"]
     countsData[Dyad_Position %in% linkerPositions | -Dyad_Position %in% linkerPositions,
                Periodic_Position_Color := "#ca0020"]
+
+    # Group each individual region together
+
   }
 
   return(countsData)
@@ -219,14 +272,14 @@ parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "N
 # datasets are present and color them based on a required "Color_Domain" column.
 plotPeriodicity = function(countsData, singleDataSet = TRUE,
                            dataCol = "Normalized_Both_Strands", title = "", ylim = NULL,
-                           yAxisLabel = "Normalized Repair Reads",
+                           yAxisLabel = "Repair/Damage",
                            xAxisLabel = "Position Relative to Dyad (bp)") {
 
   if (singleDataSet) {
 
     periodicityPlot = ggplot(countsData, aes_string("Dyad_Position", dataCol,
                                                          color = "Periodic_Position_Color")) +
-      geom_path(size = 1.25, aes(group = 1))
+      geom_path(size = 1.25, lineend = "round", aes(group = 1))
 
     # Determine whether the data is rotational, rotational+linker, or translational.
     rotational = FALSE
