@@ -2,6 +2,13 @@ library(data.table)
 library(ggplot2)
 
 
+# Default text scaling
+defaultTextScaling = theme(plot.title = element_text(size = 26, hjust = 0.5),
+                           axis.title = element_text(size = 22), axis.text = element_text(size = 18),
+                           legend.title = element_text(size = 22), legend.text = element_text(size = 18),
+                           strip.text = element_text(size = 22))
+
+
 # computes a scaling factor from given raw and background file paths.
 # Right now, this function assumes the input file paths have a "Feature_Counts" column to determine counts from.
 getScalingFactor = function(rawCountsFilePath, backgroundCountsFilePath) {
@@ -158,9 +165,7 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
     coord_cartesian(ylim = ylim) +
     scale_x_continuous(breaks = -2:8 + 0.5, minor_breaks = NULL,
                        labels = c('','',"TSS",'','','','','',"TES",'','')) +
-    theme(plot.title = element_text(size = 20, hjust = 0.5),
-          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
-          legend.text = element_text(size = 12),)
+    defaultTextScaling
 
   print(geneBinPlot)
 
@@ -227,8 +232,7 @@ binInChromosomesAcrossDataSets = function(binnedCountsTable, compBinCountsTable,
 # (Could probably make more modular in the future is some features are not desired.)
 # chromosomeSets example: list("chrX", "chrY", c("chr2L","chr2R"), c("chr3L","chr3R"), "chr4")
 createGgplotBinPlots = function(binnedCountsTable, chromosomeSets, yData = "Log_Ratio",
-                                yAxisLabel = "Log Ratio", title = "", ylim = NULL, colorPlot = TRUE,
-                                textSizeScaleFactor = 1.5) {
+                                yAxisLabel = "Log Ratio", title = "", ylim = NULL, colorPlot = TRUE) {
 
   binnedCountsTable = copy(binnedCountsTable)
   binnedCountsTable[,Bin_Start := Bin_Start / 1000000]
@@ -241,11 +245,8 @@ createGgplotBinPlots = function(binnedCountsTable, chromosomeSets, yData = "Log_
       labs(title = title, x = "Chromosome Position (Mb)", y = yAxisLabel) +
       facet_grid(~Chromosome, space = "free", scales = "free") +
       coord_cartesian(ylim = ylim) +
-      theme(plot.title = element_text(size = 20*textSizeScaleFactor, hjust = 0.5),
-            axis.title = element_text(size = 15*textSizeScaleFactor),
-            axis.text = element_text(size = 12*textSizeScaleFactor),
-            strip.text = element_text(size = 15*textSizeScaleFactor),
-            panel.spacing = unit(0.1, "lines"), legend.position = "none")
+      defaultTextScaling +
+      theme(panel.spacing = unit(0.1, "lines"), legend.position = "none")
 
     if (colorPlot) {
       plot = plot + geom_bar(aes(color = Majority_Domain_Color, fill = Majority_Domain_Color), stat = "identity") +
@@ -306,10 +307,8 @@ plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "", yDa
   # Finishing touches
   thisPlot = thisPlot + labs(title = title, y = yAxisLabel) +
     coord_cartesian(ylim = ylim) +
-    theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
-          axis.text.x = element_text(size = 15), axis.text.y = element_text(size = 12),
-          axis.title.x = element_blank(),
-          legend.text = element_text(size = 12), legend.title = element_text(size = 14))
+    defaultTextScaling +
+    theme(axis.title.x = element_blank())
 
   print(thisPlot)
 
@@ -344,8 +343,7 @@ plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
     geom_line() + geom_point() +
     coord_cartesian(ylim = ylim) +
-    theme(plot.title = element_text(size = 20, hjust = 0.5), axis.title = element_text(size = 15),
-          axis.text = element_text(size = 12), legend.text = element_text(size = 12),)
+    defaultTextScaling
 
   print(thisPlot)
 

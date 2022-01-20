@@ -5,6 +5,13 @@ library(ggplot2)
 
 ROTATIONAL = 1
 TRANSLATIONAL = 2
+
+# Default text scaling
+defaultTextScaling = theme(plot.title = element_text(size = 26, hjust = 0.5),
+                           axis.title = element_text(size = 22), axis.text = element_text(size = 18),
+                           legend.title = element_text(size = 22), legend.text = element_text(size = 18),
+                           strip.text = element_text(size = 22))
+
 # Returns a lomb object for the given data.  (Usually nucleosome self-count data)
 getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = NA, rotationalPosCutoff = 60,
                         countsColumnName = NULL, plotResult = FALSE, showLspWarnings = FALSE) {
@@ -103,9 +110,8 @@ plotLombResult = function(lombData, title = "", xAxisLabel = "Periods",
   lombResultPlot = lombResultPlot +
     coord_cartesian(ylim = ylim) +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
-    theme(plot.title = element_text(size = 20, hjust = 0.5),
-          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
-          legend.text = element_text(size = 12), legend.key.width = unit(2,"cm"))
+    defaultTextScaling +
+    theme(legend.key.width = unit(2,"cm"))
 
   print(lombResultPlot)
 
@@ -321,9 +327,7 @@ plotPeriodicity = function(countsData, singleDataSet = TRUE,
   periodicityPlot = periodicityPlot +
     coord_cartesian(ylim = ylim) +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
-    theme(plot.title = element_text(size = 20, hjust = 0.5),
-          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
-          legend.text = element_text(size = 12))
+    defaultTextScaling
 
   print(periodicityPlot)
 
@@ -334,7 +338,7 @@ plotPeriodicity = function(countsData, singleDataSet = TRUE,
 parseAndPlotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "Normalized_Both_Strands",
                                    smoothTranslational = TRUE, fixedNRL = NULL,
                                    title = "", ylim = NULL,
-                                   yAxisLabel = "Normalized Repair Reads",
+                                   yAxisLabel = "Repair/Damage",
                                    xAxisLabel = "Position Relative to Dyad (bp)") {
 
   parsedData = parsePeriodicityData(dataSet, rotationalOnlyCutoff, dataCol, smoothTranslational, fixedNRL)
@@ -345,7 +349,7 @@ parseAndPlotPeriodicity = function(dataSet, rotationalOnlyCutoff = 60, dataCol =
 
 # Plot the plus and minus strands (aligned) as two lines on the same graph.
 plotPlusAndMinus = function(countsData, title = "", ylim = NULL,
-                            yAxisLabel = "Normalized Repair Reads",
+                            yAxisLabel = "Repair/Damage",
                             xAxisLabel = "Position Relative to Dyad (bp)") {
 
   plusStrandCounts = countsData[[which(grepl("Plus_Strand", colnames(countsData)))[1]]]
@@ -363,9 +367,7 @@ plotPlusAndMinus = function(countsData, title = "", ylim = NULL,
                          labels = c("Plus Strand", "Minus Strand")) +
     coord_cartesian(ylim = ylim) +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
-    theme(plot.title = element_text(size = 20, hjust = 0.5),
-          axis.title = element_text(size = 15), axis.text = element_text(size = 12),
-          legend.text = element_text(size = 12))
+    defaultTextScaling
 
 }
 
@@ -404,9 +406,9 @@ addTimepointAndDomainInfo = function(dataSetName, smoothCols = list("Normalized_
 # Plot a bunch of figures together using facets, stratified by timepoint on one axis and domains on the other.
 plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands",
                               expectedTimepoints = c("10m", "30m", "8h", "16h", "24h"),
-                              title = "", xBreaks = NULL, ylim = NULL,
-                              yAxisLabel = "Normalized Repair Reads",
-                              xAxisLabel = "Position Relative to Dyad (bp)", textSizeScaleFactor = 1) {
+                              title = "", xBreaks = NULL, yBreaks = NULL, ylim = NULL,
+                              yAxisLabel = "Repair/Damage",
+                              xAxisLabel = "Position Relative to Dyad (bp)") {
   bulkCountsPlot = ggplot(bulkCountsData, aes_string("Dyad_Position", dataCol, color = "Domain")) +
     scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "forestgreen",
                                   "RED" = "red", "YELLOW" = "gold2"), guide = "none") +
@@ -414,6 +416,7 @@ plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands
     labs(title = title, x = "Position Relative to Dyad (bp)", y = yAxisLabel) +
     facet_grid(factor(Timepoint, levels = expectedTimepoints)~Domain) +
     coord_cartesian(ylim = ylim)
+
   if (is.null(xBreaks)) {
     bulkCountsPlot = bulkCountsPlot +
       scale_x_continuous(breaks = c(round(min(bulkCountsData$Dyad_Position)/2),0,
@@ -421,13 +424,17 @@ plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands
   } else {
     bulkCountsPlot = bulkCountsPlot + scale_x_continuous(breaks = xBreaks)
   }
+
+  if (is.null(yBreaks)) {
+    bulkCountsPlot = bulkCountsPlot +
+      scale_y_continuous(n.breaks = 3)
+  } else {
+    bulkCountsPlot = bulkCountsPlot + scale_y_continuous(breaks = yBreaks)
+  }
+
   bulkCountsPlot = bulkCountsPlot +
-    scale_y_continuous(n.breaks = 3) +
-    theme(plot.title = element_text(size = 20*textSizeScaleFactor, hjust = 0.5),
-          axis.title = element_text(size = 15*textSizeScaleFactor),
-          axis.text = element_text(size = 12*textSizeScaleFactor),
-          strip.text = element_text(size = 15*textSizeScaleFactor))
+    defaultTextScaling + theme(axis.text.y = element_text(size = 16))
 
   print(bulkCountsPlot)
 
-  }
+}
