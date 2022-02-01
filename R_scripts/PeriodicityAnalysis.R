@@ -77,7 +77,7 @@ getPeakPeriodicityAndSNR = function(lombResult) {
 }
 
 
-plotLombResult = function(lombData, title = "", xAxisLabel = "Periods",
+plotLombResult = function(lombData, title = "", xAxisLabel = "Period (bp)",
                           yAxisLabel = "Power", ylim = NULL,
                           colorLabels = NULL, lineTypeLabels = NULL) {
 
