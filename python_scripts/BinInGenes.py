@@ -30,9 +30,15 @@ def binInGenes(featureFilePaths: List[str], geneDesignationsFilePath, flankingBi
         outputFilePath = featureFilePath.rsplit('.', 1)[0] + "_gene_bins"
         if filePathSuffix: outputFilePath += '_' + filePathSuffix
         outputFilePath += ".tsv"
+        metadataFilePath = outputFilePath.rsplit('.',1)[0] + ".metadata"
 
         counter = BinInGenesCounter(featureFilePath, geneDesignationsFilePath, outputFilePath)
         counter.count()
+
+        # Write metadata to preserve information that is not immediately apparent from the output.
+        with open(metadataFilePath, 'w') as metadataFile:
+            metadataFile.write(f"Flanking_Bin_Size:\t{flankingBinSize}\n")
+            metadataFile.write(f"Flanking_Bins_Each_Side:\t{flankingBinNum}\n")
 
 
 def main():
