@@ -39,6 +39,7 @@ def binInGenes(featureFilePaths: List[str], geneDesignationsFilePath, flankingBi
         with open(metadataFilePath, 'w') as metadataFile:
             metadataFile.write(f"Flanking_Bin_Size:\t{flankingBinSize}\n")
             metadataFile.write(f"Flanking_Bins_Each_Side:\t{flankingBinNum}\n")
+            metadataFile.write(f"Gene_Designations_File_Path:\t{geneDesignationsFilePath}\n")
 
 
 def main():
