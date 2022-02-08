@@ -131,7 +131,7 @@ parseGeneBinData = function(geneBinsCountsFilePath, backgroundFilePath = NA,
 plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene Fraction Bin",
                            yAxisLabel = "Log Ratio", ylim = NULL, yData1 = "Coding_Log_Ratio",
                            yData2 = "Noncoding_Log_Ratio", yData3 = "TS_Vs_NTS_Log_Ratio",
-                           plotYData3Only = TRUE) {
+                           plotYData3Only = TRUE, flankingBinSize = 356) {
 
   if ("Color_Domain" %in% colnames(geneBinsCountsTable)) {
     geneBinPlot = ggplot(geneBinsCountsTable[Color_Domain != "GRAY"], aes(Gene_Fraction, color = Color_Domain))
@@ -164,7 +164,7 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
     coord_cartesian(ylim = ylim) +
     scale_x_continuous(breaks = -2:8 + 0.5, minor_breaks = NULL,
-                       labels = c('','',"TSS",'','','','','',"TES",'','')) +
+                       labels = c(-2*flankingBinSize,'',"TSS",'','','','','',"TES",'',2*flankingBinSize)) +
     defaultTextScaling
 
   print(geneBinPlot)
