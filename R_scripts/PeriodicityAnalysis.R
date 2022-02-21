@@ -12,6 +12,16 @@ defaultTextScaling = theme(plot.title = element_text(size = 26, hjust = 0.5),
                            legend.title = element_text(size = 22), legend.text = element_text(size = 18),
                            strip.text = element_text(size = 22))
 
+# Blank background theme
+blankBackground = theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+# Actual domain colors
+domainColors = c("BLACK" = "black", "black" = "black", "BLUE" = "blue", "blue" = "blue",
+                 "GREEN" = "forestgreen", "green" = "forestgreen",
+                 "RED" = "red", "red" = "red", "YELLOW" = "gold2", "yellow" = "gold2",
+                 "GRAY" = "gray", "gray" = "gray")
+
 # Returns a lomb object for the given data.  (Usually nucleosome self-count data)
 getLombResult = function(countsTable, rotOrTrans, nucleosomeExclusionBoundary = NA, rotationalPosCutoff = 60,
                         countsColumnName = NULL, plotResult = FALSE, showLspWarnings = FALSE) {
@@ -79,7 +89,8 @@ getPeakPeriodicityAndSNR = function(lombResult) {
 
 plotLombResult = function(lombData, title = "", xAxisLabel = "Period (bp)",
                           yAxisLabel = "Power", ylim = NULL,
-                          colorLabels = NULL, lineTypeLabels = NULL) {
+                          colorLabels = NULL, lineTypeLabels = NULL,
+                          manualColorOverride = NULL) {
 
   lombResultPlot = ggplot(lombData, aes(x = Periods, y = Power))
 
@@ -93,11 +104,15 @@ plotLombResult = function(lombData, title = "", xAxisLabel = "Period (bp)",
   lombResultPlot = lombResultPlot +
     geom_line(size = 2)
 
+  if (is.null(manualColorOverride)) colors = domainColors
+  else colors = manualColorOverride
+
   if (is.null(colorLabels)) {
-    lombResultPlot = lombResultPlot + scale_color_identity()
+    lombResultPlot = lombResultPlot + scale_color_manual(values = colors, guide = FALSE)
   } else {
     lombResultPlot = lombResultPlot +
-      scale_color_identity(name = '', guide = "legend", breaks = names(colorLabels), labels = colorLabels)
+      scale_color_manual(values = colors, name = '', guide = "legend",
+                         breaks = names(colorLabels), labels = colorLabels)
   }
 
   if (is.null(lineTypeLabels)) {
@@ -320,7 +335,7 @@ plotPeriodicity = function(countsData, singleDataSet = TRUE,
     periodicityPlot = ggplot(countsData, aes_string("Dyad_Position", dataCol,
                                                          color = "Color_Domain")) +
       geom_line(size = 1.25) +
-      scale_color_identity()
+      scale_color_manual(values = domainColors, guide = FALSE)
 
   }
 
@@ -410,8 +425,7 @@ plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands
                               yAxisLabel = "Repair/Damage",
                               xAxisLabel = "Position Relative to Dyad (bp)") {
   bulkCountsPlot = ggplot(bulkCountsData, aes_string("Dyad_Position", dataCol, color = "Domain")) +
-    scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "forestgreen",
-                                  "RED" = "red", "YELLOW" = "gold2"), guide = "none") +
+    scale_color_manual(values = domainColors, guide = FALSE) +
     geom_line() +
     labs(title = title, x = "Position Relative to Dyad (bp)", y = yAxisLabel) +
     facet_grid(factor(Timepoint, levels = expectedTimepoints)~Domain) +

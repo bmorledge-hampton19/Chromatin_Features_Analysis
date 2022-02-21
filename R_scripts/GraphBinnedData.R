@@ -8,6 +8,16 @@ defaultTextScaling = theme(plot.title = element_text(size = 26, hjust = 0.5),
                            legend.title = element_text(size = 22), legend.text = element_text(size = 18),
                            strip.text = element_text(size = 22))
 
+# Blank background theme
+blankBackground = theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),
+                        panel.background = element_blank(), axis.line = element_line(colour = "black"))
+
+# Actual domain colors
+domainColors = c("BLACK" = "black", "black" = "black", "BLUE" = "blue", "blue" = "blue",
+                 "GREEN" = "forestgreen", "green" = "forestgreen",
+                 "RED" = "red", "red" = "red", "YELLOW" = "gold2", "yellow" = "gold2",
+                 "GRAY" = "gray", "gray" = "gray")
+
 
 # computes a scaling factor from given raw and background file paths.
 # Right now, this function assumes the input file paths have a "Feature_Counts" column to determine counts from.
@@ -140,7 +150,7 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
   }
 
   geneBinPlot = geneBinPlot +
-    scale_color_identity()
+    scale_color_manual(values = domainColors, guide = FALSE)
 
   if (plotYData3Only) {
 
@@ -245,16 +255,13 @@ createGgplotBinPlots = function(binnedCountsTable, chromosomeSets, yData = "Log_
       labs(title = title, x = "Chromosome Position (Mb)", y = yAxisLabel) +
       facet_grid(~Chromosome, space = "free", scales = "free") +
       coord_cartesian(ylim = ylim) +
-      defaultTextScaling +
+      defaultTextScaling + blankBackground +
       theme(panel.spacing = unit(0.1, "lines"), legend.position = "none")
 
     if (colorPlot) {
       plot = plot + geom_bar(aes(color = Majority_Domain_Color, fill = Majority_Domain_Color), stat = "identity") +
-        scale_fill_identity() + scale_color_identity()
-        #scale_fill_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
-        #                             "RED" = "red", "YELLOW" = "gold", "GRAY" = "gray")) +
-        #scale_color_manual(values = c("BLACK" = "black", "BLUE" = "blue", "GREEN" = "green",
-        #                              "RED" = "red", "YELLOW" = "gold", "GRAY" = "gray"))
+        scale_fill_manual(values = domainColors, guide = FALSE) +
+        scale_color_manual(values = domainColors, guide = FALSE)
     }
 
     print(plot)
@@ -286,7 +293,7 @@ plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "", yDa
   # Basic plotting framework.
   thisPlot = ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY" & Majority_Domain_Color != "WHITE"],
                 aes_string("Majority_Domain_Color", yData, color = "Majority_Domain_Color")) +
-    scale_color_identity()
+    scale_color_manual(values = domainColors, guide = FALSE)
 
   # Plot as scatter
   if (plotType == SCATTER) {
@@ -339,7 +346,7 @@ plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "
   }
 
   thisPlot = thisPlot +
-    scale_color_identity() +
+    scale_color_manual(values = domainColors, guide = FALSE) +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
     geom_line() + geom_point() +
     coord_cartesian(ylim = ylim) +
