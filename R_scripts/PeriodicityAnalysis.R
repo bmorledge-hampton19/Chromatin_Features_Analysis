@@ -108,7 +108,7 @@ plotLombResult = function(lombData, title = "", xAxisLabel = "Period (bp)",
   else colors = manualColorOverride
 
   if (is.null(colorLabels)) {
-    lombResultPlot = lombResultPlot + scale_color_manual(values = colors, guide = FALSE)
+    lombResultPlot = lombResultPlot + scale_color_manual(values = colors, guide = "none")
   } else {
     lombResultPlot = lombResultPlot +
       scale_color_manual(values = colors, name = '', guide = "legend",
@@ -335,7 +335,7 @@ plotPeriodicity = function(countsData, singleDataSet = TRUE,
     periodicityPlot = ggplot(countsData, aes_string("Dyad_Position", dataCol,
                                                          color = "Color_Domain")) +
       geom_line(size = 1.25) +
-      scale_color_manual(values = domainColors, guide = FALSE)
+      scale_color_manual(values = domainColors, guide = "none")
 
   }
 
@@ -425,7 +425,7 @@ plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands
                               yAxisLabel = "Repair/Damage",
                               xAxisLabel = "Position Relative to Dyad (bp)") {
   bulkCountsPlot = ggplot(bulkCountsData, aes_string("Dyad_Position", dataCol, color = "Domain")) +
-    scale_color_manual(values = domainColors, guide = FALSE) +
+    scale_color_manual(values = domainColors, guide = "none") +
     geom_line() +
     labs(title = title, x = "Position Relative to Dyad (bp)", y = yAxisLabel) +
     facet_grid(factor(Timepoint, levels = expectedTimepoints)~Domain) +

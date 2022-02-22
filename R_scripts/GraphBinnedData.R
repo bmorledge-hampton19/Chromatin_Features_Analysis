@@ -150,7 +150,7 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
   }
 
   geneBinPlot = geneBinPlot +
-    scale_color_manual(values = domainColors, guide = FALSE)
+    scale_color_manual(values = domainColors, guide = "none")
 
   if (plotYData3Only) {
 
@@ -260,8 +260,8 @@ createGgplotBinPlots = function(binnedCountsTable, chromosomeSets, yData = "Log_
 
     if (colorPlot) {
       plot = plot + geom_bar(aes(color = Majority_Domain_Color, fill = Majority_Domain_Color), stat = "identity") +
-        scale_fill_manual(values = domainColors, guide = FALSE) +
-        scale_color_manual(values = domainColors, guide = FALSE)
+        scale_fill_manual(values = domainColors, guide = "none") +
+        scale_color_manual(values = domainColors, guide = "none")
     }
 
     print(plot)
@@ -293,7 +293,7 @@ plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "", yDa
   # Basic plotting framework.
   thisPlot = ggplot(binnedCountsTable[Majority_Domain_Color != "GRAY" & Majority_Domain_Color != "WHITE"],
                 aes_string("Majority_Domain_Color", yData, color = "Majority_Domain_Color")) +
-    scale_color_manual(values = domainColors, guide = FALSE)
+    scale_color_manual(values = domainColors, guide = "none")
 
   # Plot as scatter
   if (plotType == SCATTER) {
@@ -346,7 +346,7 @@ plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "
   }
 
   thisPlot = thisPlot +
-    scale_color_manual(values = domainColors, guide = FALSE) +
+    scale_color_manual(values = domainColors, guide = "none") +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
     geom_line() + geom_point() +
     coord_cartesian(ylim = ylim) +
