@@ -125,7 +125,7 @@ plotLombResult = function(lombData, title = "", xAxisLabel = "Period (bp)",
   lombResultPlot = lombResultPlot +
     coord_cartesian(ylim = ylim) +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
-    defaultTextScaling +
+    defaultTextScaling + blankBackground +
     theme(legend.key.width = unit(2,"cm"))
 
   print(lombResultPlot)
@@ -241,9 +241,11 @@ parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "N
   if (rotational) {
     # Color rotational positioning
     countsData[Dyad_Position %in% minorInPositions,
-               Periodic_Position_Color := "#1bcc44"]
+               Periodic_Position_Color := "cyan3"]
+               #Periodic_Position_Color := "#1bcc44"]
     countsData[Dyad_Position %in% minorOutPositions,
-               Periodic_Position_Color := "#993299"]
+               Periodic_Position_Color := "darkorange"]
+               #Periodic_Position_Color := "#993299"]
     countsData[is.na(Periodic_Position_Color), Periodic_Position_Color := "Black"]
 
     # Add in group IDs
@@ -253,7 +255,9 @@ parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "N
 
   if (rotationalPlus) {
     # Color linker DNA in linker+ plots.
-    countsData[Dyad_Position <= -73 | Dyad_Position >= 73, Periodic_Position_Color := "Gold"]
+    countsData[Dyad_Position <= -73 | Dyad_Position >= 73, Periodic_Position_Color := "deeppink2"]
+    #countsData[Dyad_Position <= -73 | Dyad_Position >= 73, Periodic_Position_Color := "gold"]
+
   }
 
   if (translational) {
@@ -274,9 +278,11 @@ parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "N
 
     # Color translational positioning
     countsData[Dyad_Position %in% nucleosomePositions | -Dyad_Position %in% nucleosomePositions,
-               Periodic_Position_Color := "#0571b0"]
+               Periodic_Position_Color := "darkblue"]
+               #Periodic_Position_Color := "#0571b0"]
     countsData[Dyad_Position %in% linkerPositions | -Dyad_Position %in% linkerPositions,
-               Periodic_Position_Color := "#ca0020"]
+               Periodic_Position_Color := "deeppink2"]
+               #Periodic_Position_Color := "#ca0020"]
 
     # Group each individual region together
 
@@ -316,17 +322,20 @@ plotPeriodicity = function(countsData, singleDataSet = TRUE,
     if (rotationalPlus) {
       periodicityPlot = periodicityPlot +
         scale_color_identity(name = '', guide = "legend",
-                             breaks = c("#1bcc44", "#993299", "Gold"),
+                             breaks = c("cyan3", "darkorange", "deeppink2"),
+                             #breaks = c("#1bcc44", "#993299", "Gold"),
                              labels = c("Minor-in", "Minor-out", "Linker"))
     } else if (rotational) {
       periodicityPlot = periodicityPlot +
         scale_color_identity(name = '', guide = "legend",
-                             breaks = c("#1bcc44", "#993299"),
+                             breaks = c("cyan3", "darkorange"),
+                             #breaks = c("#1bcc44", "#993299"),
                              labels = c("Minor-in", "Minor-out"))
     } else if (translational) {
       periodicityPlot = periodicityPlot +
         scale_color_identity(name = '', guide = "legend",
-                             breaks = c("#0571b0", "#ca0020"),
+                             breaks = c("darkblue", "deeppink2"),
+                             #breaks = c("#0571b0", "#ca0020"),
                              labels = c("Nucleosome","Linker"))
     }
 
@@ -342,7 +351,7 @@ plotPeriodicity = function(countsData, singleDataSet = TRUE,
   periodicityPlot = periodicityPlot +
     coord_cartesian(ylim = ylim) +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
-    defaultTextScaling
+    defaultTextScaling + blankBackground
 
   print(periodicityPlot)
 
@@ -382,7 +391,7 @@ plotPlusAndMinus = function(countsData, title = "", ylim = NULL,
                          labels = c("Plus Strand", "Minus Strand")) +
     coord_cartesian(ylim = ylim) +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
-    defaultTextScaling
+    defaultTextScaling + blankBackground
 
 }
 
@@ -429,7 +438,9 @@ plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands
     geom_line() +
     labs(title = title, x = "Position Relative to Dyad (bp)", y = yAxisLabel) +
     facet_grid(factor(Timepoint, levels = expectedTimepoints)~Domain) +
-    coord_cartesian(ylim = ylim)
+    coord_cartesian(ylim = ylim) + blankBackground +
+    theme(panel.border = element_rect(color = "black", fill = NA, size = 1),
+          strip.background = element_rect(color = "black", size = 1))
 
   if (is.null(xBreaks)) {
     bulkCountsPlot = bulkCountsPlot +

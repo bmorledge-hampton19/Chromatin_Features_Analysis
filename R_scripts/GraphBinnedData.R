@@ -138,6 +138,7 @@ parseGeneBinData = function(geneBinsCountsFilePath, backgroundFilePath = NA,
 }
 
 
+# A function for plotting gene fraction data (e.g. TS vs NTS repair rates across genes)
 plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene Fraction Bin",
                            yAxisLabel = "Log Ratio", ylim = NULL, yData1 = "Coding_Log_Ratio",
                            yData2 = "Noncoding_Log_Ratio", yData3 = "TS_Vs_NTS_Log_Ratio",
@@ -155,16 +156,16 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
   if (plotYData3Only) {
 
     geneBinPlot = geneBinPlot +
-      geom_line(aes_string(y = yData3)) +
-      geom_point(aes_string(y = yData3))
+      geom_line(aes_string(y = yData3), size = 1.25) +
+      geom_point(aes_string(y = yData3), size = 2)
 
   } else {
 
     geneBinPlot = geneBinPlot +
-      geom_line(aes_string(y = yData1, linetype = shQuote("dashed"))) +
-      geom_point(aes_string(y = yData1)) +
-      geom_line(aes_string(y = yData2, linetype = shQuote("solid"))) +
-      geom_point(aes_string(y = yData2)) +
+      geom_line(aes_string(y = yData1, linetype = shQuote("dashed")), size = 1.25) +
+      geom_point(aes_string(y = yData1), size = 2) +
+      geom_line(aes_string(y = yData2, linetype = shQuote("solid")), size = 1.25) +
+      geom_point(aes_string(y = yData2), size = 2) +
       scale_linetype_identity(guide = "legend", name = "", breaks = c("solid", "dashed"),
                               labels = c("Transcribed Strand", "Non-Transcribed Strand"))
 
@@ -175,7 +176,8 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
     coord_cartesian(ylim = ylim) +
     scale_x_continuous(breaks = -2:8 + 0.5, minor_breaks = NULL,
                        labels = c(-2*flankingBinSize,'',"TSS",'','','','','',"TES",'',2*flankingBinSize)) +
-    defaultTextScaling
+    geom_vline(xintercept = 0.5, linetype = "dashed") + geom_vline(xintercept = 6.5, linetype = "dashed") +
+    defaultTextScaling + blankBackground
 
   print(geneBinPlot)
 
@@ -314,7 +316,7 @@ plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "", yDa
   # Finishing touches
   thisPlot = thisPlot + labs(title = title, y = yAxisLabel) +
     coord_cartesian(ylim = ylim) +
-    defaultTextScaling +
+    defaultTextScaling + blankBackground +
     theme(axis.title.x = element_blank())
 
   print(thisPlot)
@@ -348,9 +350,9 @@ plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "
   thisPlot = thisPlot +
     scale_color_manual(values = domainColors, guide = "none") +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
-    geom_line() + geom_point() +
+    geom_line(size = 1.25) + geom_point(size = 2) +
     coord_cartesian(ylim = ylim) +
-    defaultTextScaling
+    defaultTextScaling + blankBackground
 
   print(thisPlot)
 
