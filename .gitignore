@@ -113,7 +113,9 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
- History files
+### R ignores
+
+# History files
 .Rhistory
 .Rapp.history
 
