@@ -1,0 +1,930 @@
+---
+title: "Binned Graph Generation"
+output: html_document
+params:
+  bioinformaticsDirectory:
+    label: "Bioinformatics Projects Directory"
+    value: C:/Bioinformatics_Projects
+    input: select
+    choices: [C:/Bioinformatics_Projects, F:/Bioinformatics_Projects]
+---
+
+```{r setup_chunk}
+library(knitr)
+opts_chunk$set(dev = "png", dpi = 600, fig.width = 7, fig.height = 5)
+if (interactive()) {
+  bioinformaticsDirectory = choose.dir(caption = "Select Bioinformatics_Projects Directory")
+} else {
+  bioinformaticsDirectory = params$bioinformaticsDirectory
+}
+```
+
+Get the relevant functions and binned counts data tables for graphing binned data
+```{r prep_bin_data, message=FALSE}
+source(file.path(bioinformaticsDirectory, "Chromatin_Features_Analysis", "R_scripts", "GraphBinnedData.R"))
+
+# Get file paths related to genome-wide bin colors.
+drosophilaChromatinDomainsDir = file.path(bioinformaticsDirectory, "Chromatin_Features_Analysis", "data",
+                                          "chromatin_domains", "drosophila")
+binnedColorDomainsFilePath100.000bp = file.path(drosophilaChromatinDomainsDir, 
+                                                "drosophila_chromatin_color_domains_100000bp_binned.tsv")
+
+# Get file paths related to repair/damage data in genome-wide bins.
+drosophilaDataDir = file.path(bioinformaticsDirectory, "mutperiod", "mutperiod_data", "drosophila_data")
+drosRepairFilePaths100.000bp = list(min10 = file.path(drosophilaDataDir, "repair",
+                                                    "Dm_CPD_10m_all_trinuc_context_mutations_100000bp_binned.tsv"),
+                                    min30 = file.path(drosophilaDataDir, "repair",
+                                                    "Dm_CPD_30m_all_trinuc_context_mutations_100000bp_binned.tsv"),
+                                    hr8 = file.path(drosophilaDataDir, "repair",
+                                                    "Dm_CPD_8h_all_trinuc_context_mutations_100000bp_binned.tsv"),
+                                    hr16 = file.path(drosophilaDataDir, "repair",
+                                                    "Dm_CPD_16h_all_trinuc_context_mutations_100000bp_binned.tsv"),
+                                    hr24 = file.path(drosophilaDataDir, "repair",
+                                                    "Dm_CPD_24h_all_trinuc_context_mutations_100000bp_binned.tsv"))
+drosDamageFilePath100.000bp = file.path(drosophilaDataDir, "damage",
+                                      "WT_0hr_UV_aggregate_dinuc_context_mutations_100000bp_binned.tsv")
+drosNakedFilePath100.000bp = file.path(drosophilaDataDir, "naked",
+                                     "WT_naked_DNA_dinuc_context_mutations_100000bp_binned.tsv")
+
+# Get file paths for 10,000 bp genome-wide bins using the file paths for 100,000 bp bins.
+binnedColorDomainsFilePath10.000bp = sub("100000", "10000", binnedColorDomainsFilePath100.000bp)
+drosRepairFilePaths10.000bp = sapply(drosRepairFilePaths100.000bp, function(x) sub("100000", "10000", x))
+drosDamageFilePath10.000bp = sub("100000", "10000", drosDamageFilePath100.000bp)
+drosNakedFilePath10.000bp = sub("100000", "10000", drosNakedFilePath100.000bp)
+
+drosRepairFilePaths10.000bpGenic = sapply(drosRepairFilePaths10.000bp, function(x) sub("all", "all_genic", x))
+drosDamageFilePath10.000bpGenic = sub("aggregate", "aggregate_genic", drosDamageFilePath10.000bp)
+drosNakedFilePath10.000bpGenic = sub("naked_DNA", "naked_DNA_genic", drosNakedFilePath10.000bp)
+
+drosRepairFilePaths10.000bpIntergenic = sapply(drosRepairFilePaths10.000bpGenic, 
+                                               function(x) sub("genic", "intergenic", x))
+drosDamageFilePath10.000bpIntergenic = sub("genic", "intergenic", drosDamageFilePath10.000bpGenic)
+drosNakedFilePath10.000bpIntergenic = sub("genic", "intergenic", drosNakedFilePath10.000bpGenic)
+
+# Determine scaling factors for the given genome-wide bin files
+drosRepairScalingFactors = lapply(drosRepairFilePaths100.000bp, getScalingFactor, drosDamageFilePath100.000bp)
+drosDamageScalingFactor = getScalingFactor(drosDamageFilePath100.000bp, drosNakedFilePath100.000bp)
+
+# Parse the genome-wide bin files into counts tables.
+drosBinnedRepairData100.000bp = lapply(drosRepairFilePaths100.000bp, parseBinData, 
+                        binnedColorDomainsFilePath = binnedColorDomainsFilePath100.000bp, 
+                        backgroundBinCountsFilePath = drosDamageFilePath100.000bp)
+drosBinnedDamageData100.000bp = parseBinData(drosDamageFilePath100.000bp, binnedColorDomainsFilePath100.000bp,
+                                    drosNakedFilePath100.000bp)
+
+drosBinnedRepairData10.000bp = lapply(drosRepairFilePaths10.000bp, parseBinData, 
+                        binnedColorDomainsFilePath = binnedColorDomainsFilePath10.000bp, 
+                        backgroundBinCountsFilePath = drosDamageFilePath10.000bp)
+drosBinnedDamageData10.000bp = parseBinData(drosDamageFilePath10.000bp, binnedColorDomainsFilePath10.000bp,
+                                    drosNakedFilePath10.000bp)
+
+drosBinnedRepairData10.000bpGenic = mapply(parseBinData, drosRepairFilePaths10.000bpGenic,
+                                           scalingFactor = drosRepairScalingFactors, SIMPLIFY = FALSE,
+                                           MoreArgs = list(
+                                             binnedColorDomainsFilePath = binnedColorDomainsFilePath10.000bp, 
+                                             backgroundBinCountsFilePath = drosDamageFilePath10.000bpGenic
+                                             )
+                                           )
+drosBinnedDamageData10.000bpGenic = parseBinData(drosDamageFilePath10.000bpGenic, 
+                                                 binnedColorDomainsFilePath10.000bp,
+                                                 drosNakedFilePath10.000bpGenic,
+                                                 drosDamageScalingFactor)
+captureOutput = lapply(drosBinnedRepairData10.000bpGenic, 
+                       function(x) x[,Genic_Or_Intergenic := "Genic"])
+drosBinnedDamageData10.000bpGenic[,Genic_Or_Intergenic := "Genic"]
+
+drosBinnedRepairData10.000bpIntergenic = mapply(parseBinData, drosRepairFilePaths10.000bpIntergenic,
+                                                scalingFactor = drosRepairScalingFactors, SIMPLIFY = FALSE,
+                                                MoreArgs = list(
+                                                  binnedColorDomainsFilePath = binnedColorDomainsFilePath10.000bp, 
+                                                  backgroundBinCountsFilePath = drosDamageFilePath10.000bpIntergenic
+                                                  )
+                                                )
+drosBinnedDamageData10.000bpIntergenic = parseBinData(drosDamageFilePath10.000bpIntergenic, 
+                                                      binnedColorDomainsFilePath10.000bp,
+                                                      drosNakedFilePath10.000bpIntergenic,
+                                                      drosDamageScalingFactor)
+captureOutput = lapply(drosBinnedRepairData10.000bpIntergenic, 
+                       function(x) x[,Genic_Or_Intergenic := "Intergenic"])
+drosBinnedDamageData10.000bpIntergenic[,Genic_Or_Intergenic := "Intergenic"]
+
+
+# Combine the genic and intergenic data.
+drosBinnedRepairData10.000bpGenicVsIntergenic = mapply(function(x,y) rbindlist(list(x,y)), 
+                                                       drosBinnedRepairData10.000bpGenic,
+                                                       drosBinnedRepairData10.000bpIntergenic,
+                                                       SIMPLIFY = FALSE)
+drosBinnedDamageData10.000bpGenicVsIntergenic = rbindlist(list(drosBinnedDamageData10.000bpGenic,
+                                                               drosBinnedDamageData10.000bpIntergenic))
+
+
+# Get file paths for the gene bins data
+drosGeneBinFlankedRepairFilePaths = 
+  list(min10 = file.path(drosophilaDataDir, "repair",
+                         "Dm_CPD_10m_all_trinuc_context_mutations_gene_bins_flanked.tsv"),
+       min30 = file.path(drosophilaDataDir, "repair",
+                         "Dm_CPD_30m_all_trinuc_context_mutations_gene_bins_flanked.tsv"),
+       hr8 = file.path(drosophilaDataDir, "repair",
+                         "Dm_CPD_8h_all_trinuc_context_mutations_gene_bins_flanked.tsv"),
+       hr16 = file.path(drosophilaDataDir, "repair",
+                         "Dm_CPD_16h_all_trinuc_context_mutations_gene_bins_flanked.tsv"),
+       hr24 = file.path(drosophilaDataDir, "repair",
+                         "Dm_CPD_24h_all_trinuc_context_mutations_gene_bins_flanked.tsv"))
+
+drosGeneBinFlankedDamageFilePath = file.path(drosophilaDataDir, "damage",
+                                             "WT_0hr_UV_aggregate_dinuc_context_mutations_gene_bins_flanked.tsv")
+drosGeneBinFlankedNakedFilePath = file.path(drosophilaDataDir, "naked",
+                                            "WT_naked_DNA_dinuc_context_mutations_gene_bins_flanked.tsv")
+
+
+# Get file paths for gene bins plus flanking regions using the file paths for just the gene bins.
+drosGeneBinFlankedColoredRepairFilePaths = sapply(drosGeneBinFlankedRepairFilePaths, 
+                                            function(x) sub(".tsv", "_colored.tsv", x))
+drosGeneBinFlankedColoredDamageFilePath = sub(".tsv", "_colored.tsv", drosGeneBinFlankedDamageFilePath)
+drosGeneBinFlankedColoredNakedFilePath = sub(".tsv", "_colored.tsv", drosGeneBinFlankedNakedFilePath)
+
+
+# Parse the gene bin files into counts tables.
+drosGeneBinFlankedRepairData = lapply(drosGeneBinFlankedRepairFilePaths, parseGeneBinData,
+                                      backgroundFilePath = drosGeneBinFlankedDamageFilePath)
+drosGeneBinFlankedDamageData = parseGeneBinData(drosGeneBinFlankedDamageFilePath, 
+                                         background = drosGeneBinFlankedNakedFilePath)
+
+drosGeneBinFlankedColoredRepairData = lapply(drosGeneBinFlankedColoredRepairFilePaths, parseGeneBinData,
+                                       backgroundFilePath = drosGeneBinFlankedColoredDamageFilePath)
+drosGeneBinFlankedColoredDamageData = parseGeneBinData(drosGeneBinFlankedColoredDamageFilePath, 
+                                                 background = drosGeneBinFlankedColoredNakedFilePath)
+
+# Get the colored gene designations and RNAseq data.
+drosGeneDesignationsColored = fread(file.path(bioinformaticsDirectory, "mutperiod", "mutperiod_data",
+                                              "__external_data", "dm6", "gene_designations",
+                                              "dm6_BDGP6_89_named_genes_colored.bed"))
+
+drosGeneRPKMValues = fread(file.path(bioinformaticsDirectory, "Chromatin_Features_Analysis", "data",
+                                     "RNAseq", "drosophila_S2_gene_RPKM.tsv"))
+
+```
+
+
+Plot Repair (10m) and Damage bins, uncolored, across chromosomes 2 and 3.
+```{r genome-wide_bins_repair_vs_damage, fig.width = 12, fig.height=5}
+createGgplotBinPlots(drosBinnedRepairData100.000bp$min30, list(c("chr2L","chr2R"), c("chr3L","chr3R")),
+                     title = "Binned 30m UV Repair", ylim = c(-4,4), colorPlot = FALSE,
+                     yAxisLabel = expression("log"[2]*"(Repair/Damage)"))
+createGgplotBinPlots(drosBinnedRepairData10.000bp$min30, list(c("chr2L","chr2R"), c("chr3L","chr3R")),
+                     title = "Binned 30m UV Repair", ylim = c(-4,4), colorPlot = FALSE,
+                     yAxisLabel = expression("log"[2]*"(Repair/Damage)"))
+createGgplotBinPlots(drosBinnedRepairData10.000bp$hr24, list(c("chr2L","chr2R"), c("chr3L","chr3R")),
+                     title = "Binned 24h UV Repair", ylim = c(-4,4), colorPlot = FALSE,
+                     yAxisLabel = expression("log"[2]*"(Repair/Damage)"))
+createGgplotBinPlots(drosBinnedDamageData100.000bp, list(c("chr2L","chr2R"), c("chr3L","chr3R")),
+                     title = "Binned UV Damage", ylim = c(-4,4), colorPlot = FALSE,
+                     yAxisLabel = expression("log"[2]*"(Cellular/Naked Damage)"))
+createGgplotBinPlots(drosBinnedDamageData10.000bp, list(c("chr2L","chr2R"), c("chr3L","chr3R")),
+                     title = "Binned UV Damage", ylim = c(-4,4), colorPlot = FALSE,
+                     yAxisLabel = expression("log"[2]*"(Cellular/Naked Damage)"))
+```
+
+
+```{r genome-wide_bins_repair_vs_damage_single_arm, fig.width = 12, fig.height = 5}
+createGgplotBinPlots(drosBinnedRepairData10.000bp$min30[Bin_Start >= 5000000], list("chr2R"),
+                     title = "Binned 30m UV Repair", ylim = c(-4,4), colorPlot = FALSE,
+                     yAxisLabel = expression("log"[2]*"(Repair/Damage)"))
+createGgplotBinPlots(drosBinnedDamageData10.000bp[Bin_Start >= 5000000], list("chr2R"),
+                     title = "Binned UV Damage", ylim = c(-4,4), colorPlot = FALSE,
+                     yAxisLabel = expression("log"[2]*"(Cellular/Naked Damage)"))
+```
+
+
+```{r genome-wide_bins_repair_vs_damage_single_arm_colored, fig.width = 12, fig.height=5}
+zoomedData = drosBinnedRepairData10.000bp$min30[Chromosome == "chr3R" & 
+                                                  Bin_Start >= 4000000 & Bin_Start <= 5000000]
+createGgplotBinPlots(drosBinnedRepairData10.000bp$min30, list("chr3R"),
+                     title = "Binned 30m UV Repair", ylim = c(-4,4), colorPlot = TRUE,
+                     yAxisLabel = expression("log"[2]*"(Repair/Damage)"))
+createGgplotBinPlots(drosBinnedRepairData10.000bp$min30[Bin_Start >= 5000000], list("chr2R"),
+                     title = "Binned 30m UV Repair", ylim = c(-4,4), colorPlot = TRUE,
+                     yAxisLabel = expression("log"[2]*"(Repair/Damage)"))
+createGgplotBinPlots(drosBinnedRepairData10.000bp$hr24[Bin_Start >= 5000000], list("chr2R"),
+                     title = "Binned 24h UV Repair", ylim = c(-4,4), colorPlot = TRUE,
+                     yAxisLabel = expression("log"[2]*"(Repair/Damage)"))
+createGgplotBinPlots(drosBinnedDamageData10.000bp[Bin_Start >= 5000000], list("chr2R"),
+                     title = "Binned UV Damage", ylim = c(-4,4), colorPlot = TRUE,
+                     yAxisLabel = expression("log"[2]*"(Cellular/Naked Damage)"))
+createGgplotBinPlots(drosBinnedDamageData10.000bp, list("chr2L"),
+                     title = "Binned UV Damage", ylim = c(-4,4), colorPlot = TRUE,
+                     yAxisLabel = expression("log"[2]*"(Cellular/Naked Damage)"))
+```
+
+
+
+```{r genome-wide_bins_repair_and_damage, fig.width = 15, fig.height=6}
+createGgplotBinPlots(drosBinnedRepairData100.000bp$min30, list(c("chr2L","chr2R"), c("chr3L","chr3R")),
+                     yData = "Feature_Counts", title = "Binned 30m UV Repair", colorPlot = FALSE,
+                     yAxisLabel = "Repair Reads")
+createGgplotBinPlots(drosBinnedDamageData100.000bp, list(c("chr2L","chr2R"), c("chr3L","chr3R")),
+                     yData = "Feature_Counts", title = "Binned UV Damage", colorPlot = FALSE,
+                     yAxisLabel = "Damage Reads")
+```
+
+
+Plot boxplots of UV damage and repair
+```{r repair_boxplots}
+plotLogRatioDistribution(drosBinnedDamageData10.000bp, BOXPLOT, title = "Color Domains UV Damage", 
+                         yAxisLabel = "Cellular to Naked Damage Log Ratio", ylim = c(-3,3))
+plotLogRatioDistribution(drosBinnedRepairData10.000bp$min10, BOXPLOT, title = "Color Domains UV Repair (10m)", 
+                         yAxisLabel = "Repair to Damage Log Ratio", ylim = c(-3,3))
+plotLogRatioDistribution(drosBinnedRepairData10.000bp$min30, BOXPLOT, title = "Color Domains UV Repair (30m)", 
+                         yAxisLabel = "Repair to Damage Log Ratio", ylim = c(-3,3))
+plotLogRatioDistribution(drosBinnedRepairData10.000bp$hr8, BOXPLOT, title = "Color Domains UV Repair (8h)", 
+                         yAxisLabel = "Repair to Damage Log Ratio", ylim = c(-3,3))
+plotLogRatioDistribution(drosBinnedRepairData10.000bp$hr24, BOXPLOT, title = "Color Domains UV Repair (24h)", 
+                         yAxisLabel = "Repair to Damage Log Ratio", ylim = c(-3,3))
+```
+
+
+Plot raw damage reads
+```{r damage_boxplots}
+plotLogRatioDistribution(drosBinnedDamageData10.000bp, BOXPLOT, title = "Color Domains UV Damage", 
+                         yAxisLabel = "Damage Reads", yData = "Feature_Counts", ylim = c(0,4000))
+```
+
+
+Plot boxplots of UV damage and repair stratified by genic vs. intergenic regions
+```{r genic_vs_intergenic_boxplots}
+plotLogRatioDistribution(drosBinnedDamageData10.000bpGenicVsIntergenic, 
+                         BOXPLOT, title = "Color Domains UV Damage", 
+                         yAxisLabel = "Cellular to Naked Damage Log Ratio", ylim = c(-3,3),
+                         facetColumn = "Genic_Or_Intergenic")
+plotLogRatioDistribution(drosBinnedRepairData10.000bpGenicVsIntergenic$min10, 
+                         BOXPLOT, title = "Color Domains UV Repair (10m)", 
+                         yAxisLabel = "Repair to Damage Log Ratio", ylim = c(-3,3),
+                         facetColumn = "Genic_Or_Intergenic")
+plotLogRatioDistribution(drosBinnedRepairData10.000bpGenicVsIntergenic$min30, 
+                         BOXPLOT, title = "Color Domains UV Repair (30m)", 
+                         yAxisLabel = "Repair to Damage Log Ratio", ylim = c(-3,3),
+                         facetColumn = "Genic_Or_Intergenic")
+plotLogRatioDistribution(drosBinnedRepairData10.000bpGenicVsIntergenic$hr8, 
+                         BOXPLOT, title = "Color Domains UV Repair (8h)", 
+                         yAxisLabel = "Repair to Damage Log Ratio", ylim = c(-3,3),
+                         facetColumn = "Genic_Or_Intergenic")
+plotLogRatioDistribution(drosBinnedRepairData10.000bpGenicVsIntergenic$hr24, 
+                         BOXPLOT, title = "Color Domains UV Repair (24h)", 
+                         yAxisLabel = "Repair to Damage Log Ratio", ylim = c(-3,3),
+                         facetColumn = "Genic_Or_Intergenic")
+```
+
+
+Figure 3: Plot repair data over time
+```{r repair_over_time}
+plotLogRatioMediansOverTime(drosBinnedRepairData10.000bp, timePoints = c(1/6, 0.5, 8, 16, 24),
+                            title = "Color Domains UV Repair", yAxisLabel = expression("log"[2]*"(Repair/Damage)"),
+                            xAxisLabel = "Repair Timepoint (Hours)", ylim = c(-1,1))
+```
+
+
+Plot repair data over time, stratifying by genic vs intergenic regions
+```{r repair_over_time_genic_vs_intergenic}
+plotLogRatioMediansOverTime(lapply(drosBinnedRepairData10.000bpGenicVsIntergenic,
+                                   function(x) x[Genic_Or_Intergenic == "Genic"]), 
+                            timePoints = c(1/6, 0.5, 8, 16, 24),
+                            title = "Color Domains UV Repair (Genic)", yAxisLabel = "Repair to Damage Log Ratio",
+                            xAxisLabel = "Repair Timepoint (Hours)", ylim = c(-1,1))
+plotLogRatioMediansOverTime(lapply(drosBinnedRepairData10.000bpGenicVsIntergenic,
+                                   function(x) x[Genic_Or_Intergenic == "Intergenic"]), 
+                            timePoints = c(1/6, 0.5, 8, 16, 24),
+                            title = "Color Domains UV Repair (Intergenic)", yAxisLabel = "Repair to Damage Log Ratio",
+                            xAxisLabel = "Repair Timepoint (Hours)", ylim = c(-1,1))
+```
+
+
+Plot repair data over time, stratifying by genic vs intergenic regions
+```{r repair_over_time_genic_vs_intergenic_together, fig.width = 9, fig.height = 5}
+plotLogRatioMediansOverTime(drosBinnedRepairData10.000bpGenicVsIntergenic, timePoints = c(1/6, 0.5, 8, 16, 24),
+                            title = "Color Domains UV Repair", yAxisLabel = "Repair to Damage Log Ratio",
+                            xAxisLabel = "Repair Timepoint (Hours)", ylim = c(-1,1.5),
+                            lineTypeColumn = "Genic_Or_Intergenic", 
+                            lineTypeMapping = c(Genic = "solid", Intergenic = "dashed"))
+```
+
+
+
+Figure 3.5: Plot Repair and Damage data over gene bins at representative time points.
+```{r TS_to_NTS_repair}
+plotGeneBinData(drosGeneBinFlankedDamageData, title = "Gene Fractions UV Damage",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Damage)"), ylim = c(-1,1))
+plotGeneBinData(drosGeneBinFlankedRepairData$min10, title = "Gene Fractions UV Repair 10m",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Repair)"), ylim = c(-1,1))
+plotGeneBinData(drosGeneBinFlankedRepairData$min30, title = "Gene Fractions UV Repair 30m",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Repair)"), ylim = c(-1,1))
+plotGeneBinData(drosGeneBinFlankedRepairData$hr8, title = "Gene Fractions UV Repair 8h",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Repair)"), ylim = c(-1,1))
+plotGeneBinData(drosGeneBinFlankedRepairData$hr16, title = "Gene Fractions UV Repair 16h",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Repair)"), ylim = c(-1,1))
+plotGeneBinData(drosGeneBinFlankedRepairData$hr24, title = "Gene Fractions UV Repair 24h",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Repair)"), ylim = c(-1,1))
+```
+
+
+Like the above plots but with 3, 356bp bins of flanking DNA and lines for each color domain.
+```{r TS_to_NTS_repair_by_domain}
+plotGeneBinData(drosGeneBinFlankedColoredDamageData, title = "Gene Fractions UV Damage",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Damage)"), ylim = c(-1,1))
+plotGeneBinData(drosGeneBinFlankedColoredRepairData$min10, title = "Gene Fractions UV Repair 10m",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Repair)"), ylim = c(-1,1))
+plotGeneBinData(drosGeneBinFlankedColoredRepairData$min30, title = "Gene Fractions UV Repair 30m",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Repair)"), ylim = c(-1,1.5))
+plotGeneBinData(drosGeneBinFlankedColoredRepairData$hr8, title = "Gene Fractions UV Repair 8h",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Repair)"), ylim = c(-1,1))
+plotGeneBinData(drosGeneBinFlankedColoredRepairData$hr16, title = "Gene Fractions UV Repair 16h",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Repair)"), ylim = c(-2,1))
+plotGeneBinData(drosGeneBinFlankedColoredRepairData$hr24, title = "Gene Fractions UV Repair 24h",
+                yAxisLabel = expression("log"[2]*"(TS/NTS Repair)"), ylim = c(-2,1))
+```
+
+
+Supplemental RNA-seq analysis
+```{r domain_RPKM}
+# Get the median RPKM values by color
+drosGeneRPKMValuesColored = merge(drosGeneRPKMValues, drosGeneDesignationsColored, by.y = "V4", by.x = "Flybase")
+drosGeneRPKMValuesColored = setnames(drosGeneRPKMValuesColored[,.(Flybase, RPKM_value, V7)], "V7", "Color_Domain")
+medianRPKMByColor = drosGeneRPKMValuesColored[,.(Median_RPKM = median(RPKM_value)), by = Color_Domain]
+
+# Make a little bar plot!
+ggplot(medianRPKMByColor[Color_Domain != "GRAY"], aes(y = Median_RPKM, x = Color_Domain, 
+                                                      color = Color_Domain, fill = Color_Domain)) +
+  geom_bar(stat = "identity") +
+  scale_color_manual(values = domainColors) +
+  scale_fill_manual(values = domainColors) +
+  labs(title = "RNASeq Results By Domain", x = "Color Domain", y = "Median Gene RPKM") +
+  blankBackground + defaultTextScaling +
+  theme(plot.title = element_text(size = 20, hjust = 0.5),
+        axis.title = element_text(size = 15), axis.text = element_text(size = 12))
+
+  print(medianRPKMByColor[Color_Domain != "GRAY"])
+
+```
+
+
+#Periodicity Analysis
+
+Get the relevant data files for the NRL analysis
+```{r prep_nucleosome_map_periodicity_data}
+source(file.path(bioinformaticsDirectory, "Chromatin_Features_Analysis", "R_scripts", "PeriodicityAnalysis.R"))
+
+# Get nucleosome self counts
+nucSelfCountsFilePaths = list(all = file.path(drosophilaDataDir, "nucleosomes",
+                                "S2_nucleosome_map_nuc-group_self_raw_nucleosome_mutation_counts.tsv"),
+                              black = file.path(drosophilaDataDir, "nucleosomes",
+                                "S2_nucleosome_map_BLACK_domain_nuc-group_self_raw_nucleosome_mutation_counts.tsv"),
+                              blue = file.path(drosophilaDataDir, "nucleosomes",
+                                "S2_nucleosome_map_BLUE_domain_nuc-group_self_raw_nucleosome_mutation_counts.tsv"),
+                              green = file.path(drosophilaDataDir, "nucleosomes",
+                                "S2_nucleosome_map_GREEN_domain_nuc-group_self_raw_nucleosome_mutation_counts.tsv"),
+                              red = file.path(drosophilaDataDir, "nucleosomes",
+                                "S2_nucleosome_map_RED_domain_nuc-group_self_raw_nucleosome_mutation_counts.tsv"),
+                              yellow = file.path(drosophilaDataDir, "nucleosomes",
+                                "S2_nucleosome_map_YELLOW_domain_nuc-group_self_raw_nucleosome_mutation_counts.tsv"))
+
+# Get nucleosome subset self counts
+nucSelfCountsSubsetFilePaths = list(black = file.path(drosophilaDataDir, "nucleosomes",
+                        "S2_nucleosome_map_BLACK_domain_subset_nuc-group_self_raw_nucleosome_mutation_counts.tsv"),
+                      blue = file.path(drosophilaDataDir, "nucleosomes",
+                        "S2_nucleosome_map_BLUE_domain_subset_nuc-group_self_raw_nucleosome_mutation_counts.tsv"),
+                      yellow = file.path(drosophilaDataDir, "nucleosomes",
+                        "S2_nucleosome_map_YELLOW_domain_subset_nuc-group_self_raw_nucleosome_mutation_counts.tsv"))
+
+yellowGenicNucSelfCounts = fread(file.path(drosophilaDataDir, "nucleosomes",
+                                           "S2_nucleosome_map_YELLOW_domain_genic_nuc-group_self_counts.tsv"))
+yellowIntergenicNucSelfCounts = fread(file.path(drosophilaDataDir, "nucleosomes",
+                                        "S2_nucleosome_map_YELLOW_domain_intergenic_nuc-group_self_counts.tsv"))
+
+# Convert self counts to lomb-scargle periodograms.
+nucSelfCountsData = lapply(nucSelfCountsFilePaths, fread)
+nucSelfCountsLombResult = lapply(nucSelfCountsData, function(x){getLombResult(x, TRANSLATIONAL, 147)})
+nucSelfCountsPeriodAndSNR = lapply(nucSelfCountsLombResult, getPeakPeriodicityAndSNR)
+nucSelfCountsLombResult = rbindlist(lapply(seq_along(nucSelfCountsLombResult), 
+                                    function(i){data.table(Color_Domain = names(nucSelfCountsLombResult)[i], 
+                                                           Periods = nucSelfCountsLombResult[[i]]$scanned,
+                                                           Power = nucSelfCountsLombResult[[i]]$power)}))
+
+nucSelfCountsSubsetData = lapply(nucSelfCountsSubsetFilePaths, fread)
+nucSelfCountsSubsetLombResult = lapply(nucSelfCountsSubsetData, function(x){getLombResult(x, TRANSLATIONAL, 147)})
+nucSelfCountsSubsetLombResult = rbindlist(lapply(seq_along(nucSelfCountsSubsetLombResult), 
+                                    function(i){data.table(Color_Domain = names(nucSelfCountsSubsetLombResult)[i], 
+                                                           Periods = nucSelfCountsSubsetLombResult[[i]]$scanned,
+                                                           Power = nucSelfCountsSubsetLombResult[[i]]$power)}))
+
+# Make two more sets of lomb results, one for inner data and one for outer.
+nucSelfCountsOutsideLR = lapply(nucSelfCountsData, function(x){getLombResult(x, TRANSLATIONAL, 500)})
+nucSelfCountsOutsideLR = rbindlist(lapply(seq_along(nucSelfCountsOutsideLR), 
+                                    function(i){data.table(Color_Domain = names(nucSelfCountsOutsideLR)[i], 
+                                                           Periods = nucSelfCountsOutsideLR[[i]]$scanned,
+                                                           Power = nucSelfCountsOutsideLR[[i]]$power)}))
+
+nucSelfCountsInsideLR = lapply(nucSelfCountsData, 
+                               function(x){getLombResult(x[Dyad_Position >= -500 & Dyad_Position <= 500], 
+                                                         TRANSLATIONAL, 147)})
+nucSelfCountsInsideLR = rbindlist(lapply(seq_along(nucSelfCountsInsideLR), 
+                                    function(i){data.table(Color_Domain = names(nucSelfCountsInsideLR)[i], 
+                                                           Periods = nucSelfCountsInsideLR[[i]]$scanned,
+                                                           Power = nucSelfCountsInsideLR[[i]]$power)}))
+
+yellowGenicLombResult = getLombResult(yellowGenicNucSelfCounts, TRANSLATIONAL, 147)
+yellowIntergenicLombResult = getLombResult(yellowIntergenicNucSelfCounts, TRANSLATIONAL, 147)
+
+yellowGenicVIntergenicLombResult = rbindlist(list(data.table(Color_Domain = "gold2", Line_Type = "solid",
+                                                             Periods = yellowGenicLombResult$scanned,
+                                                             Power = yellowGenicLombResult$power),
+                                                  data.table(Color_Domain = "darkorange", Line_Type = "dashed",
+                                                             Periods = yellowIntergenicLombResult$scanned, 
+                                                             Power = yellowIntergenicLombResult$power)))
+```
+
+
+Plot lomb results for the NRL analysis
+```{r nucleosome_map_periodograms}
+plotLombResult(nucSelfCountsLombResult[Color_Domain == "all", .(Periods, Power)], 
+               title = "NRL Periodogram (All Nucleosomes)")
+plotLombResult(nucSelfCountsLombResult[Color_Domain != "all"], 
+               title = "NRL Periodogram (Color Domains)")
+plotLombResult(rbindlist(list(nucSelfCountsSubsetLombResult, 
+                              nucSelfCountsLombResult[Color_Domain == "green" | Color_Domain == "red"])), 
+               title = "NRL Periodogram (Subset)")
+```
+
+
+What if Lomb-Scargle only saw the outside or inside of the nucleosome self-counts data?
+```{r nucleosome_map_periodograms_inner_vs_outer}
+plotLombResult(nucSelfCountsOutsideLR[Color_Domain == "all", .(Periods, Power)], 
+               title = "NRL Periodogram (All Nucleosomes, Outer Positions)")
+plotLombResult(nucSelfCountsOutsideLR[Color_Domain != "all"], 
+               title = "NRL Periodogram (Color Domains, Outer Positions)")
+
+plotLombResult(nucSelfCountsInsideLR[Color_Domain == "all", .(Periods, Power)], 
+               title = "NRL Periodogram (All Nucleosomes, Inner Positions)")
+plotLombResult(nucSelfCountsInsideLR[Color_Domain != "all"], 
+               title = "NRL Periodogram (Color Domains, Inner Positions)")
+```
+
+
+
+```{r nucleosome_map_periodogram_yellow_domain_genic_vs_intergenic, fig.width = 9, fig.height = 5}
+plotLombResult(yellowGenicVIntergenicLombResult, title = "Lomb-Scargle Periodogram (Yellow Domain)",
+               lineTypeLabels = c(solid = "Genic", dashed = "Intergenic"),
+               manualColorOverride = c("gold2" = "gold2", "darkorange" = "darkorange"))
+```
+
+
+Translational periodicity plots for nucleosome self-counts
+```{r nucleosome_map_translational_periodicities, fig.width = 9, fig.height = 5}
+parseAndPlotPeriodicity(nucSelfCountsData$all[Dyad_Position != 0], 
+                        title = "Nucleosome Periodicity", fixedNRL = 182,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucSelfCountsData$black[Dyad_Position != 0], 
+                        title = "Black Domain Nucleosome Periodicity", fixedNRL = 185,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucSelfCountsData$blue[Dyad_Position != 0],
+                        title = "Blue Domain Nucleosome Periodicity", fixedNRL = 183,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucSelfCountsData$green[Dyad_Position != 0],
+                        title = "Green Domain Nucleosome Periodicity", fixedNRL = 179,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucSelfCountsData$red[Dyad_Position != 0],
+                        title = "Red Domain Nucleosome Periodicity", fixedNRL = 181,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucSelfCountsData$yellow[Dyad_Position != 0], 
+                        title = "Yellow Domain Nucleosome Periodicity", fixedNRL = 174,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+```
+
+
+What Lomb-Scargle actually sees (without the straight line in the middle).
+```{r what_Lomb-Scargle_actually_sees, fig.width = 9, fig.height = 5}
+parseAndPlotPeriodicity(nucSelfCountsData$black[Dyad_Position < -147 | Dyad_Position > 147], 
+                        title = "Black Domain Nucleosome Periodicity", fixedNRL = 185, smoothTranslational = FALSE,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucSelfCountsData$green[Dyad_Position < -147 | Dyad_Position > 147],
+                        title = "Green Domain Nucleosome Periodicity", fixedNRL = 179, smoothTranslational = FALSE,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+```
+
+```{r setup-chunk2}
+drosophilaMutperiodData = file.path(drosophilaDataDir, "full_color_domain_analysis_combined_5.rda")
+knitr::opts_template$set(mutperiodData = list(cache = TRUE, 
+                                              cache.extra = na.fail(tools::md5sum(drosophilaMutperiodData))))
+```
+
+Get the relevant data files for the analysis of the XR-seq data.
+```{r prep_repair_and_damage_periodicity_data, opts.label = "mutperiodData"}
+# Organize the big ol' mutperiod data object.
+load(drosophilaMutperiodData)
+dataSetNames = as.list(setNames(nm = mutperiodData$periodicityResults$Data_Set))
+
+transNucCountsDamage = list(all = mutperiodData$normalizedNucleosomeCountsTables$
+                              `WT_0hr_UV_aggregate_custom_context_nuc-group_normalized`,
+                            black = mutperiodData$normalizedNucleosomeCountsTables$
+                              `WT_0hr_UV_aggregate_BLACK_domain_custom_context_nuc-group_normalized`,
+                            blue = mutperiodData$normalizedNucleosomeCountsTables$
+                              `WT_0hr_UV_aggregate_BLUE_domain_custom_context_nuc-group_normalized`,
+                            green = mutperiodData$normalizedNucleosomeCountsTables$
+                              `WT_0hr_UV_aggregate_GREEN_domain_custom_context_nuc-group_normalized`,
+                            red = mutperiodData$normalizedNucleosomeCountsTables$
+                              `WT_0hr_UV_aggregate_RED_domain_custom_context_nuc-group_normalized`,
+                            yellow = mutperiodData$normalizedNucleosomeCountsTables$
+                              `WT_0hr_UV_aggregate_YELLOW_domain_custom_context_nuc-group_normalized`)
+
+transNucCounts30Min = list(all = mutperiodData$normalizedNucleosomeCountsTables$
+                                 `Dm_CPD_30m_all_custom_context_nuc-group_normalized`,
+                           black = mutperiodData$normalizedNucleosomeCountsTables$
+                                   `Dm_CPD_30m_all_BLACK_domain_custom_context_nuc-group_normalized`,
+                           blue = mutperiodData$normalizedNucleosomeCountsTables$
+                                  `Dm_CPD_30m_all_BLUE_domain_custom_context_nuc-group_normalized`,
+                           green = mutperiodData$normalizedNucleosomeCountsTables$
+                                   `Dm_CPD_30m_all_GREEN_domain_custom_context_nuc-group_normalized`,
+                           red = mutperiodData$normalizedNucleosomeCountsTables$
+                                 `Dm_CPD_30m_all_RED_domain_custom_context_nuc-group_normalized`,
+                           yellow = mutperiodData$normalizedNucleosomeCountsTables$
+                                    `Dm_CPD_30m_all_YELLOW_domain_custom_context_nuc-group_normalized`)
+
+transNucCounts30MinSubset = list(black = mutperiodData$normalizedNucleosomeCountsTables$
+                                         `Dm_CPD_30m_all_BLACK_domain_subset_custom_context_nuc-group_normalized`,
+                                 blue = mutperiodData$normalizedNucleosomeCountsTables$
+                                        `Dm_CPD_30m_all_BLUE_domain_subset_custom_context_nuc-group_normalized`,
+                                 yellow = mutperiodData$normalizedNucleosomeCountsTables$
+                                          `Dm_CPD_30m_all_YELLOW_domain_subset_custom_context_nuc-group_normalized`,
+                                 green = mutperiodData$normalizedNucleosomeCountsTables$
+                                         `Dm_CPD_30m_all_GREEN_domain_custom_context_nuc-group_normalized`)
+
+transNucCounts10Min = list(all = mutperiodData$normalizedNucleosomeCountsTables$
+                                 `Dm_CPD_10m_all_custom_context_nuc-group_normalized`,
+                           black = mutperiodData$normalizedNucleosomeCountsTables$
+                                   `Dm_CPD_10m_all_BLACK_domain_custom_context_nuc-group_normalized`,
+                           blue = mutperiodData$normalizedNucleosomeCountsTables$
+                                  `Dm_CPD_10m_all_BLUE_domain_custom_context_nuc-group_normalized`,
+                           green = mutperiodData$normalizedNucleosomeCountsTables$
+                                   `Dm_CPD_10m_all_GREEN_domain_custom_context_nuc-group_normalized`,
+                           red = mutperiodData$normalizedNucleosomeCountsTables$
+                                 `Dm_CPD_10m_all_RED_domain_custom_context_nuc-group_normalized`,
+                           yellow = mutperiodData$normalizedNucleosomeCountsTables$
+                                    `Dm_CPD_10m_all_YELLOW_domain_custom_context_nuc-group_normalized`)
+
+transNucCounts16Hour = list(all = mutperiodData$normalizedNucleosomeCountsTables$
+                                  `Dm_CPD_16h_all_custom_context_nuc-group_normalized`,
+                            black = mutperiodData$normalizedNucleosomeCountsTables$
+                                    `Dm_CPD_16h_all_BLACK_domain_custom_context_nuc-group_normalized`,
+                            blue = mutperiodData$normalizedNucleosomeCountsTables$
+                                   `Dm_CPD_16h_all_BLUE_domain_custom_context_nuc-group_normalized`,
+                            green = mutperiodData$normalizedNucleosomeCountsTables$
+                                    `Dm_CPD_16h_all_GREEN_domain_custom_context_nuc-group_normalized`,
+                            red = mutperiodData$normalizedNucleosomeCountsTables$
+                                  `Dm_CPD_16h_all_RED_domain_custom_context_nuc-group_normalized`,
+                            yellow = mutperiodData$normalizedNucleosomeCountsTables$
+                                     `Dm_CPD_16h_all_YELLOW_domain_custom_context_nuc-group_normalized`)
+
+# Convert counts to lomb-scargle periodograms.
+transLombResults30Min = lapply(transNucCounts30Min, function(x){getLombResult(x, TRANSLATIONAL)})
+transLombResults30Min = rbindlist(lapply(seq_along(transLombResults30Min), 
+                                  function(i){data.table(Color_Domain = names(transLombResults30Min)[i], 
+                                                         Periods = transLombResults30Min[[i]]$scanned,
+                                                         Power = transLombResults30Min[[i]]$power)}))
+
+transLombResults30MinSubset = lapply(transNucCounts30MinSubset, function(x){getLombResult(x, TRANSLATIONAL)})
+transLombResults30MinSubset = rbindlist(lapply(seq_along(transLombResults30MinSubset), 
+                                        function(i){data.table(Color_Domain = names(transLombResults30MinSubset)[i], 
+                                                               Periods = transLombResults30MinSubset[[i]]$scanned,
+                                                               Power = transLombResults30MinSubset[[i]]$power)}))
+
+transLombResults10Min = lapply(transNucCounts10Min, function(x){getLombResult(x, TRANSLATIONAL)})
+transLombResults10Min = rbindlist(lapply(seq_along(transLombResults10Min), 
+                                  function(i){data.table(Color_Domain = names(transLombResults10Min)[i], 
+                                                         Periods = transLombResults10Min[[i]]$scanned,
+                                                         Power = transLombResults10Min[[i]]$power)}))
+
+transLombResults16Hour = lapply(transNucCounts16Hour, function(x){getLombResult(x, TRANSLATIONAL)})
+transLombResults16Hour = rbindlist(lapply(seq_along(transLombResults16Hour), 
+                                  function(i){data.table(Color_Domain = names(transLombResults16Hour)[i], 
+                                                         Periods = transLombResults16Hour[[i]]$scanned,
+                                                         Power = transLombResults16Hour[[i]]$power)}))
+
+transLombResultsDamage = lapply(transNucCountsDamage, function(x){getLombResult(x, TRANSLATIONAL)})
+transLombResultsDamage = rbindlist(lapply(seq_along(transLombResultsDamage), 
+                                   function(i){data.table(Color_Domain = names(transLombResultsDamage)[i], 
+                                                          Periods = transLombResultsDamage[[i]]$scanned,
+                                                          Power = transLombResultsDamage[[i]]$power)}))
+
+# Compile bulk data for gg facet plot
+isTranslationalDataSets = grepl("nuc-group", dataSetNames, fixed = TRUE)
+isRepairDataSet = !grepl("UV_aggregate", dataSetNames)
+isSubsetDataSet = grepl("subset", dataSetNames)
+
+# Gets all data for translational repair data sets with timepoint and domain columns.
+bulkTransCountsData = rbindlist(lapply(dataSetNames[isTranslationalDataSets & isRepairDataSet & !isSubsetDataSet],
+                                       addTimepointAndDomainInfo, 
+                                       smoothCols = list("Normalized_Both_Strands",
+                                                         "Alternative_Normalized_Both_Strands")))
+
+# Gets all data for rotational repair data sets with timepoint and domain columns.
+bulkRotCountsData = rbindlist(lapply(dataSetNames[!isTranslationalDataSets & isRepairDataSet & !isSubsetDataSet],
+                                     addTimepointAndDomainInfo))
+```
+
+
+Plot XR-seq Lomb-Scargle periodograms.
+```{r repair_periodograms, opts.label = "mutperiodData", fig.width = 7, fig.height = 5}
+# All domains combined
+plotLombResult(transLombResults30Min[Color_Domain == "all", .(Periods, Power)], 
+               title = "UV Repair 30 Min Periodogram (All Nucleosomes)")
+plotLombResult(transLombResults10Min[Color_Domain == "all", .(Periods, Power)], 
+               title = "UV Repair 10 Min Periodogram (All Nucleosomes)")
+plotLombResult(transLombResults16Hour[Color_Domain == "all", .(Periods, Power)], 
+               title = "UV Repair 16 Hour Periodogram (All Nucleosomes)")
+plotLombResult(transLombResultsDamage[Color_Domain == "all", .(Periods, Power)], 
+               title = "UV Damage Periodogram (All Nucleosomes)")
+
+# Individual domains plotted together
+plotLombResult(transLombResults30Min[Color_Domain != "all"], 
+               title = "UV Repair 30 Min Periodogram (Color Domains)")
+plotLombResult(transLombResults10Min[Color_Domain != "all"], 
+               title = "UV Repair 10 Min Periodogram (Color Domains)")
+plotLombResult(transLombResults16Hour[Color_Domain != "all"], 
+               title = "UV Repair 16 Hour Periodogram (Color Domains)")
+plotLombResult(transLombResultsDamage[Color_Domain != "all"], 
+               title = "UV Damage Periodogram (Color Domains)")
+```
+
+
+```{r repair_periodograms_combined, fig.width = 9, fig.height = 5}
+transLombResultsDamagePlusRepair = rbindlist(list(copy(transLombResults30Min)[,Line_Type := "solid"],
+                                                  copy(transLombResultsDamage)[,Line_Type := "dashed"]))
+plotLombResult(transLombResultsDamagePlusRepair[Color_Domain == "all", !"Color_Domain"],
+               lineTypeLabels = c(solid = "Repair", dashed = "Damage"))
+plotLombResult(transLombResultsDamagePlusRepair[Color_Domain != "all"],
+               lineTypeLabels = c(solid = "Repair", dashed = "Damage"))
+```
+
+
+
+```{r repair_periodograms_subsetted, opts.label = "mutperiodData"}
+plotLombResult(transLombResults30MinSubset, title = "UV Repair 30 Min Periodogram (Green Size Subset)")
+```
+
+
+Periodicity plots!  Hooray!
+
+Rotational
+```{r repair_and_damage_rotational_periodicities, opts.label = "mutperiodData", fig.width = 9, fig.height = 5}
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_custom_context_30linker+_normalized`),
+                title = "All Domains 30m DNA Repair", ylim = c(0.8, 1.4))
+
+# Damage, zoomed out, with linker
+plotPeriodicity(parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_custom_context_30linker+_normalized`),
+                title = "All Domains UV Damage", yAxisLabel = "Cellular/Naked Damage", ylim = c(0.8, 1.4))
+
+# Damage, zoomed in, without linker
+plotPeriodicity(parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_custom_context_30linker+_normalized`)[
+                  Dyad_Position > -60 & Dyad_Position < 60
+                ],
+                title = "All Domains UV Damage", yAxisLabel = "Cellular/Naked Damage", ylim = c(0.95, 1.05))
+
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLACK_domain_custom_context_30linker+_normalized`),
+                title = "Black Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLUE_domain_custom_context_30linker+_normalized`),
+                title = "Blue Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_GREEN_domain_custom_context_30linker+_normalized`),
+                title = "Green Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_RED_domain_custom_context_30linker+_normalized`),
+                title = "Red Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$
+                                       `Dm_CPD_30m_all_YELLOW_domain_custom_context_30linker+_normalized`),
+                title = "Yellow Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_BLACK_domain_custom_context_30linker+_normalized`),
+                title = "Black Domain 10m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_BLUE_domain_custom_context_30linker+_normalized`),
+                title = "Blue Domain 10m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_GREEN_domain_custom_context_30linker+_normalized`),
+                title = "Green Domain 10m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_RED_domain_custom_context_30linker+_normalized`),
+                title = "Red Domain 10m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$
+                                       `Dm_CPD_10m_all_YELLOW_domain_custom_context_30linker+_normalized`),
+                title = "Yellow Domain 10m DNA Repair", ylim = c(0.8, 1.4))
+```
+
+
+```{r repair_and_damage_aligned_rotational_periodicities, opts.label = "mutperiodData", fig.width = 9, fig.height = 5}
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_custom_context_30linker+_normalized`),
+                dataCol = "Normalized_Aligned_Strands", title = "All Domains 30m DNA Repair (aligned)",
+                ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_custom_context_30linker+_normalized`),
+                dataCol = "Normalized_Aligned_Strands", title = "All Domains UV Damage (aligned)",
+                yAxisLabel = "Cellular/Naked Damage", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_custom_context_30linker+_normalized`),
+                dataCol = "Normalized_Aligned_Strands", title = "All Domains UV Damage (aligned)",
+                yAxisLabel = "Cellular/Naked Damage", ylim = c(0.95, 1.05))
+
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLACK_domain_custom_context_30linker+_normalized`),
+                dataCol = "Normalized_Aligned_Strands", title = "Black Domain 30m DNA Repair (aligned)",
+                ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLUE_domain_custom_context_30linker+_normalized`),
+                dataCol = "Normalized_Aligned_Strands", title = "Blue Domain 30m DNA Repair (aligned)",
+                ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_GREEN_domain_custom_context_30linker+_normalized`),
+                dataCol = "Normalized_Aligned_Strands", title = "Green Domain 30m DNA Repair (aligned)",
+                ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_RED_domain_custom_context_30linker+_normalized`),
+                dataCol = "Normalized_Aligned_Strands", title = "Red Domain 30m DNA Repair (aligned)",
+                ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$
+                                       `Dm_CPD_30m_all_YELLOW_domain_custom_context_30linker+_normalized`),
+                dataCol = "Normalized_Aligned_Strands", title = "Yellow Domain 30m DNA Repair (aligned)",
+                ylim = c(0.8, 1.4))
+
+# plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_BLACK_domain_custom_context_30linker+_normalized`),
+#                 dataCol = "Normalized_Aligned_Strands", title = "Black Domain 10m DNA Repair (aligned)",
+#                 ylim = c(0.8, 1.4))
+# plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_BLUE_domain_custom_context_30linker+_normalized`),
+#                 dataCol = "Normalized_Aligned_Strands", title = "Blue Domain 10m DNA Repair (aligned)",
+#                 ylim = c(0.8, 1.4))
+# plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_GREEN_domain_custom_context_30linker+_normalized`),
+#                 dataCol = "Normalized_Aligned_Strands", title = "Green Domain 10m DNA Repair (aligned)",
+#                 ylim = c(0.8, 1.4))
+# plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_RED_domain_custom_context_30linker+_normalized`),
+#                 dataCol = "Normalized_Aligned_Strands", title = "Red Domain 10m DNA Repair (aligned)",
+#                 ylim = c(0.8, 1.4))
+# plotPeriodicity(parsePeriodicityData(dataSetNames$
+#                                        `Dm_CPD_10m_all_YELLOW_domain_custom_context_30linker+_normalized`),
+#                 dataCol = "Normalized_Aligned_Strands", title = "Yellow Domain 10m DNA Repair (aligned)",
+#                 ylim = c(0.8, 1.4))
+```
+
+
+Rotational subset plots
+```{r repair_and_damage_subset_rotational_periodicities, opts.label = "mutperiodData", fig.width = 9, fig.height = 5}
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLACK_domain_subset_custom_context_30linker+_normalized`),
+                title = "Black Domain 30m Repair (subset)", ylim = c(0.8, 1.4))
+
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLUE_domain_subset_custom_context_30linker+_normalized`),
+                title = "Blue Domain 30m Repair (subset)", ylim = c(0.8, 1.4))
+
+plotPeriodicity(parsePeriodicityData(dataSetNames$
+                                       `Dm_CPD_30m_all_YELLOW_domain_subset_custom_context_30linker+_normalized`),
+                title = "Yellow Domain 30m Repair (subset)", ylim = c(0.8, 1.4))
+```
+
+
+Strand asymmetry analysis
+```{r repair_and_damage_rotational_periodicities_individual_strands, opts.label = "mutperiodData", fig.width = 9, fig.height = 5}
+plotPlusAndMinus(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_custom_context_30linker+_normalized`),
+                 title = "All Domains 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPlusAndMinus(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_custom_context_30linker+_normalized`)[
+                   Dyad_Position >= -60 & Dyad_Position <= 60
+                 ],
+                 title = "All Domains 30m DNA Repair (Zoomed)", ylim = c(0.8, 1.2))
+plotPlusAndMinus(parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_custom_context_30linker+_normalized`),
+                 title = "All Domains UV Damage", yAxisLabel = "Cellular/Naked Damage", ylim = c(0.8, 1.4))
+plotPlusAndMinus(parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_custom_context_30linker+_normalized`),
+                 title = "All Domains UV Damage", yAxisLabel = "Cellular/Naked Damage", ylim = c(0.95, 1.05))
+
+plotPlusAndMinus(parsePeriodicityData(dataSetNames$
+                                        `Dm_CPD_30m_all_BLACK_domain_custom_context_30linker+_normalized`),
+                 title = "Black Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPlusAndMinus(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLUE_domain_custom_context_30linker+_normalized`),
+                 title = "Blue Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPlusAndMinus(parsePeriodicityData(dataSetNames$
+                                        `Dm_CPD_30m_all_GREEN_domain_custom_context_30linker+_normalized`),
+                 title = "Green Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPlusAndMinus(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_RED_domain_custom_context_30linker+_normalized`),
+                 title = "Red Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPlusAndMinus(parsePeriodicityData(dataSetNames$
+                                        `Dm_CPD_30m_all_YELLOW_domain_custom_context_30linker+_normalized`),
+                 title = "Yellow Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+```
+
+
+
+Translational
+```{r repair_and_damage_translational_data, opts.label = "mutperiodData", fig.width = 9, fig.height = 5}
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_custom_context_nuc-group_normalized`),
+                title = "All Domains 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_custom_context_nuc-group_normalized`),
+                title = "All Domains UV Damage", ylim = c(0.8, 1.4), yAxisLabel = "Cellular/Naked Damage")
+plotPeriodicity(parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_custom_context_nuc-group_normalized`),
+                title = "All Domains UV Damage", ylim = c(0.9, 1.1), yAxisLabel = "Cellular/Naked Damage")
+
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLACK_domain_custom_context_nuc-group_normalized`),
+                title = "Black Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLUE_domain_custom_context_nuc-group_normalized`),
+                title = "Blue Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_GREEN_domain_custom_context_nuc-group_normalized`),
+                title = "Green Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_RED_domain_custom_context_nuc-group_normalized`),
+                title = "Red Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$
+                                       `Dm_CPD_30m_all_YELLOW_domain_custom_context_nuc-group_normalized`),
+                title = "Yellow Domain 30m DNA Repair", ylim = c(0.8, 1.4))
+
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_BLACK_domain_custom_context_nuc-group_normalized`),
+                title = "Black Domain 10m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_BLUE_domain_custom_context_nuc-group_normalized`),
+                title = "Blue Domain 10m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_GREEN_domain_custom_context_nuc-group_normalized`),
+                title = "Green Domain 10m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_RED_domain_custom_context_nuc-group_normalized`),
+                title = "Red Domain 10m DNA Repair", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$
+                                       `Dm_CPD_10m_all_YELLOW_domain_custom_context_nuc-group_normalized`),
+                title = "Yellow Domain 10m DNA Repair", ylim = c(0.8, 1.4))
+```
+
+
+Translational subset plots
+```{r repair_and_damage_subset_translational_periodicities, fig.width = 9, fig.height = 5, opts.label = "mutperiodData"}
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLACK_domain_subset_custom_context_nuc-group_normalized`),
+                title = "Black Domain 30m DNA Repair (subset)", ylim = c(0.8, 1.4))
+plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLUE_domain_subset_custom_context_nuc-group_normalized`),
+                title = "Blue Domain 30m DNA Repair (subset)", ylim = c(0.8, 1.4))
+
+plotPeriodicity(parsePeriodicityData(dataSetNames$
+                                       `Dm_CPD_30m_all_YELLOW_domain_subset_custom_context_nuc-group_normalized`),
+                title = "Yellow Domain 30m DNA Repair (subset)", ylim = c(0.8, 1.4))
+```
+
+
+Plotting translational periodicity for yellow and black chromatin domains together
+```{r yellow_vs_black_translational_periodicity, opts.label = "mutperiodData", fig.width = 7, fig.height = 5}
+yellowDomain30mTransCounts = 
+  parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_YELLOW_domain_custom_context_nuc-group_normalized`)
+yellowDomain30mTransCounts[,Color_Domain := "YELLOW"]
+
+blackDomain30mTransCounts = 
+  parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLACK_domain_custom_context_nuc-group_normalized`)
+blackDomain30mTransCounts[,Color_Domain := "BLACK"]
+
+yellowVsBlack = rbindlist(list(yellowDomain30mTransCounts, blackDomain30mTransCounts))
+plotPeriodicity(yellowVsBlack, FALSE, title = "Yellow Vs Black Repair (30 min)")
+
+yellowDomainNucSelfCounts = parsePeriodicityData(nucSelfCountsData$yellow,fixedNRL = 2,
+                                                 dataCol = "Both_Strands_Counts")
+yellowDomainNucSelfCounts[,Color_Domain := "YELLOW"]
+yellowDomainNucSelfCounts[,Normalized_Both_Strands := Both_Strands_Counts/median(Both_Strands_Counts)]
+
+blackDomainNucSelfCounts = parsePeriodicityData(nucSelfCountsData$black,fixedNRL = 2,
+                                                 dataCol = "Both_Strands_Counts")
+blackDomainNucSelfCounts[,Color_Domain := "BLACK"]
+blackDomainNucSelfCounts[,Normalized_Both_Strands := Both_Strands_Counts/median(Both_Strands_Counts)]
+
+yellowVsBlack = rbindlist(list(yellowDomainNucSelfCounts, blackDomainNucSelfCounts))
+plotPeriodicity(yellowVsBlack[Dyad_Position < -5 | Dyad_Position > 5], FALSE, 
+                title = "Yellow Vs Black Nucleosome Positioning", yAxisLabel = "Scaled Nucleosome Counts")
+```
+
+
+Facet plots
+```{r periodicity_facet_plots, fig.width = 12, fig.height = 5, opts.label = "mutperiodData"}
+plotBulkCountsData(bulkTransCountsData, yBreaks = c(0.8, 1.0, 1.2), ylim = c(0.8,1.3))
+plotBulkCountsData(bulkRotCountsData, xBreaks = c(-50,0,50), yBreaks = c(0.8, 1.0, 1.2))
+plotBulkCountsData(bulkTransCountsData, dataCol = "Alternative_Normalized_Both_Strands")
+plotBulkCountsData(bulkRotCountsData, xBreaks = c(-50,0,50), dataCol = "Alternative_Normalized_Both_Strands")
+```
+
+
+```{r GO_analysis_supplemental, fig.width = 12, fig.height = 5}
+GOanalysis = fread(file.path(drosophilaDataDir,"GO_analysis.csv"))
+
+ggplot(GOanalysis[Color_Domain == "Red"], aes(x=reorder(Category,length(Category):1), 
+                                              y=`Negative_Log_10_P-Value`)) +
+  geom_bar(stat = "identity") + coord_flip() +
+  labs(title = "GO Analysis Red Domain", y = expression("-log"[10]*"(p-value)"),
+       x = "Gene Ontology Category") + defaultTextScaling + theme(axis.text.y = element_text(size = 14)) +
+  blankBackground
+
+ggplot(GOanalysis[Color_Domain == "Black"], aes(x=reorder(Category,length(Category):1), 
+                                              y=`Negative_Log_10_P-Value`)) +
+  geom_bar(stat = "identity") + coord_flip() +
+  labs(title = "GO Analysis Black Domain", y = expression("-log"[10]*"(p-value)"),
+       x = "Gene Ontology Category") + defaultTextScaling + theme(axis.text.y = element_text(size = 14)) +
+  blankBackground
+```
+
+
+```{r GO_analysis_yellow, fig.width = 8, fig.height = 5}
+ggplot(GOanalysis[Color_Domain == "Yellow"], aes(x=reorder(Category,length(Category):1), 
+                                              y=`Negative_Log_10_P-Value`)) +
+  geom_bar(stat = "identity") + coord_flip() +
+  labs(title = "GO Analysis Yellow Domain", y = expression("-log"[10]*"(p-value)"),
+       x = "Gene Ontology Category") + defaultTextScaling + theme(axis.text.y = element_text(size = 14)) +
+  blankBackground
+```
+
+
+```{r}
+RPKMdata = fread(file.path(drosophilaDataDir,"drosophila_S2_gene_RPKM_colored.tsv"))
+
+for (color in c("BLACK","BLUE","GREEN","RED","YELLOW")) {
+  print(RPKMdata[Color_Domain == color][order(-RPKM_value)])
+}
+
+```
+
