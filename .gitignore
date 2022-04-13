@@ -158,6 +158,10 @@ docs/
 # translation temp files
 po/*~
 
+### My Ignores ###
+
 # Data files
 data/
 
+# Test files
+test*
