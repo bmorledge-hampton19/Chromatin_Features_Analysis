@@ -1,11 +1,10 @@
 # Uses gene names to assign rows of data (e.g. RPKM) to color domains.
 import os
-from pickle import TRUE
 from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog
 
 
 def assignToDomainByGene(coloredGeneDesignationsFilePath: str, colorlessGeneDataFilePath: str,
-                         geneIDindex = 0, omitGrayDomain = TRUE, addSecondaryID = True):
+                         geneIDindex = 0, omitGrayDomain = True, addSecondaryID = True):
 
     # Create an output file path
     coloredGeneDataFilePath = colorlessGeneDataFilePath.rsplit('.',1)[0] + "_colored.tsv"
