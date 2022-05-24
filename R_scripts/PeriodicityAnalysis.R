@@ -1,6 +1,7 @@
 # A series of functions for quantifying and plotting periodicities.
 # Trimmed down from mutperiod to accept simple counts data as input.
 library(lomb)
+library(data.table)
 library(ggplot2)
 
 ROTATIONAL = 1
