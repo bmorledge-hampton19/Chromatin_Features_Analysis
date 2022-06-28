@@ -687,6 +687,29 @@ plotPeriodicity(parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_custom_co
                 ],
                 title = "All Domains UV Damage", yAxisLabel = "Cellular/Naked Damage", ylim = c(0.95, 1.05))
 
+# Damage, stratified by color domain
+plotPeriodicity(
+  parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_BLACK_domain_custom_context_30linker+_normalized`),
+  title = "BLACK Domain UV Damage", yAxisLabel = "Cellular/Naked Damage", ylim = c(0.8, 1.4)
+)
+plotPeriodicity(
+  parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_BLUE_domain_custom_context_30linker+_normalized`),
+  title = "BLUE Domain UV Damage", yAxisLabel = "Cellular/Naked Damage", ylim = c(0.8, 1.4)
+)
+plotPeriodicity(
+  parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_GREEN_domain_custom_context_30linker+_normalized`),
+  title = "GREEN Domain UV Damage", yAxisLabel = "Cellular/Naked Damage", ylim = c(0.8, 1.4)
+)
+plotPeriodicity(
+  parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_RED_domain_custom_context_30linker+_normalized`),
+  title = "RED Domain UV Damage", yAxisLabel = "Cellular/Naked Damage", ylim = c(0.8, 1.4)
+)
+plotPeriodicity(
+  parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_YELLOW_domain_custom_context_30linker+_normalized`),
+  title = "YELLOW Domain UV Damage", yAxisLabel = "Cellular/Naked Damage", ylim = c(0.8, 1.4)
+)
+
+# Repair, 30m, stratified by color domain
 plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLACK_domain_custom_context_30linker+_normalized`),
                 title = "Black Domain 30m DNA Repair", ylim = c(0.8, 1.4))
 plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLUE_domain_custom_context_30linker+_normalized`),
@@ -699,6 +722,7 @@ plotPeriodicity(parsePeriodicityData(dataSetNames$
                                        `Dm_CPD_30m_all_YELLOW_domain_custom_context_30linker+_normalized`),
                 title = "Yellow Domain 30m DNA Repair", ylim = c(0.8, 1.4))
 
+# Repair, 10m, stratified by color domain
 plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_BLACK_domain_custom_context_30linker+_normalized`),
                 title = "Black Domain 10m DNA Repair", ylim = c(0.8, 1.4))
 plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_10m_all_BLUE_domain_custom_context_30linker+_normalized`),
@@ -812,6 +836,27 @@ plotPeriodicity(parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_custom_co
                 title = "All Domains UV Damage", ylim = c(0.8, 1.4), yAxisLabel = "Cellular/Naked Damage")
 plotPeriodicity(parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_custom_context_nuc-group_normalized`),
                 title = "All Domains UV Damage", ylim = c(0.9, 1.1), yAxisLabel = "Cellular/Naked Damage")
+
+plotPeriodicity(
+  parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_BLACK_domain_custom_context_nuc-group_normalized`),
+  title = "BLACK Domain UV Damage", ylim = c(0.8, 1.4), yAxisLabel = "Cellular/Naked Damage"
+)
+plotPeriodicity(
+  parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_BLUE_domain_custom_context_nuc-group_normalized`),
+  title = "BLUE Domain UV Damage", ylim = c(0.8, 1.4), yAxisLabel = "Cellular/Naked Damage"
+)
+plotPeriodicity(
+  parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_GREEN_domain_custom_context_nuc-group_normalized`),
+  title = "GREEN Domain UV Damage", ylim = c(0.8, 1.4), yAxisLabel = "Cellular/Naked Damage"
+)
+plotPeriodicity(
+  parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_RED_domain_custom_context_nuc-group_normalized`),
+  title = "RED Domain UV Damage", ylim = c(0.8, 1.4), yAxisLabel = "Cellular/Naked Damage"
+)
+plotPeriodicity(
+  parsePeriodicityData(dataSetNames$`WT_0hr_UV_aggregate_YELLOW_domain_custom_context_nuc-group_normalized`),
+  title = "YELLOW Domain UV Damage", ylim = c(0.8, 1.4), yAxisLabel = "Cellular/Naked Damage"
+)
 
 plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_CPD_30m_all_BLACK_domain_custom_context_nuc-group_normalized`),
                 title = "Black Domain 30m DNA Repair", ylim = c(0.8, 1.4))
