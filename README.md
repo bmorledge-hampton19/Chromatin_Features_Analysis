@@ -81,11 +81,17 @@ f
 If the data has been prepared correctly, running the analyses and generating figures is easy: Simply run/knit the [R notebook](R/) in the repository. Also, when running the notebook, keep in mind the following details:
 
 #### Defining the "Bioinformatics_Projects" Directory
-The notebook requires a path to the "Bioinformatics_Projects" directory. (More information on this directory is available at the end of the [directory structure naming conventions section](#directory-structure-naming-conventions)). In brief, this is the parent directory to the cloned chromatin_features_analysis repository. If you are running the R notebooks in interactive mode, you will be able to select this directory through a file browser dialog. If you are knitting the notebook, you will select this directory from a list of choices in the Shiny UI for the notebook's parameters. If the desired directory is not listed, you will need to add it manually to the R notebook (on line 9).
+The notebook requires a path to the "Bioinformatics_Projects" directory. (More information on this directory is available in the [bioinformatics directory](#the-bioinformatics-directory) section.) In brief, this is the parent directory to the cloned chromatin_features_analysis repository. If you are running the R notebooks in interactive mode, you will be able to select this directory through a file browser dialog. If you are knitting the notebook, you will select this directory from a list of choices in the Shiny UI for the notebook's parameters. If the desired directory is not listed, you will need to add it manually to the R notebook (on line 9).
 
 #### Figure Output
-When knitting figure generation notebooks, the figures are automatically output to the R/????? directory, which will be created if it doesn't already exist.
+When knitting figure generation notebooks, the figures are automatically output to the R/Drosophila_chromatin_domains_analysis_output directory, which will be created if it doesn't already exist.
 ***
 
 ## Data Availability
-The sequencing data used for the analyses supported by this repository can be found [here](NO-LINK-YET)
+The data used for the analyses supported by this repository can be found at the following locations:
+- Drosophila CPD-seq data: [NO-LINK-YET](NO-LINK-YET)
+- Drosophila XR-seq data: []()
+- Drosophila nucleosome map: []()
+- Drosophila chromatin domain designations: []()
+- Drosophila gene region designations: []()
+- Drosophila RPKM values: []()
