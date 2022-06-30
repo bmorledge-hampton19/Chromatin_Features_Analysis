@@ -73,8 +73,25 @@ It is still possible to run the analysis without following these instructions to
 
 ## Preparing Data for Analysis
 
-#### ???
-f
+#### Acquiring Data
+
+
+#### Binning Color Domains
+
+
+#### Expanding and "Coloring" Gene Designations
+
+
+#### Stratifying Nucleosomes By Color
+
+
+#### Binning Across the Genome
+
+
+#### Binning Within Genes Across Strands
+
+
+#### Periodicity Analysis With mutperiod
 ***
 
 ## Analysis and Figure Generation
@@ -88,10 +105,12 @@ When knitting figure generation notebooks, the figures are automatically output 
 ***
 
 ## Data Availability
-The data used for the analyses supported by this repository can be found at the following locations:
-- Drosophila CPD-seq data: [NO-LINK-YET](NO-LINK-YET)
-- Drosophila XR-seq data: []()
-- Drosophila nucleosome map: []()
-- Drosophila chromatin domain designations: []()
-- Drosophila gene region designations: []()
-- Drosophila RPKM values: []()
+The data used for the analyses supported by this repository can be found at the following locations (All data relates to Drosophila Melanogaster):
+- dm6.chrom.sizes: [https://github.com/igvteam/igv/blob/master/genomes/sizes/dm6.chrom.sizes](https://github.com/igvteam/igv/blob/master/genomes/sizes/dm6.chrom.sizes)
+- CPD-seq data: [NO-LINK-YET](NO-LINK-YET)
+- XR-seq data: [https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE138846](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE138846)
+- MNase map: [https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM1200479](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM1200479)
+- Nucleosome map: [NO-LINK-YET](NO-LINK-YET)
+- Chromatin domain designations: [https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE22069](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE22069)
+- Gene region designations: [??????](??????)
+- RPKM values: [https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM480160](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM480160)
