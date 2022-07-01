@@ -165,3 +165,8 @@ data/
 
 # Test files
 test*
+
+# R notebook output
+Drosophila_chromatin_domains_analysis_output/
+GraphBinnedData_cache/
+R_scripts/GraphBinnedData.html
