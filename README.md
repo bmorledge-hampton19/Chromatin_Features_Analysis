@@ -72,9 +72,16 @@ It is still possible to run the analysis without following these instructions to
 ***
 
 ## Preparing Data for Analysis
+This section details the necessary steps to prepare the data for analysis and figure generation. It is admittedly an arduous, specific, and unforgiving process, as no streamlined pipeline was ever created to accommodate it. Despite this, that process is documented below in the event that it should need to be replicated.
 
 #### Acquiring Data
 
+
+#### Combining Data Repititions
+Later steps in the analysis expect data with the "all" identifier, representing data which has combined multiple repititions for the same timepoint. It is a good idea to combine these repitions now, before setting up the directories for mutperiod. You can use the [CombineReps.py](https://github.com/bmorledge-hampton19/benbiohelpers/blob/main/python/benbiohelpers/FileSystemHandling/CombineReps.py) script in benbiohelpers to accomplish this. Just make sure to change the "Combined Repitition String" parameter to just "all". Also note that this script assumes that the 2 repititions are present in the same directory, so you may need to reorganize how the files are structured at this point. It may be easiest to do this in tandem with the next step.
+
+#### Preparing Directories for mutperiod
+Later steps in the analysis use mutperiod, which expects exactly one directory per data set. So for each data set, a directory needs to be created following the same [naming conventions](#data-file-naming-conventions) as the accompanying data set. (remember, only the "all" files containing both repititions for a given timepoint are required for later steps in the analysis). Keep in mind that any data stratification not directly supported by mutperiod will have to be accompanied by the creation of additional directories. This will become relevant when [stratifying across genic and intergenic positions](#stratifying-across-genic-and-intergenic-positions).
 
 #### Binning Color Domains
 
@@ -84,6 +91,23 @@ It is still possible to run the analysis without following these instructions to
 
 #### Stratifying Nucleosomes By Color
 
+
+#### Aligning XR-seq Data
+
+
+#### Calling Lesions From XR-seq Data
+Mutperiod has a specialized function for reducing XR-seq reads to single-nucleotide resolution, although this function is hidden from the command line interface. To access this function, run the [ParseXRSeq.py](https://github.com/bmorledge-hampton19/mutperiod/blob/master/python_packages/mutperiod/mutperiodpy/input_parsing/ParseXRSeq.py) script found within the input_parsing module in mutperiod. In the resulting UI, give the XR-seq data in bed format, generated during the above [alignment step](#Aligning-XR-seq-Data). For the lesion call parameter file, give [this file](https://github.com/bmorledge-hampton19/mutperiod/blob/master/python_packages/mutperiod/mutperiodpy/input_parsing/drosophila_CPD_call_params.tsv) which is also found in the mutperiod input_parsing module. Finally, select the dm6 genome where prompted. When run, the program should output files containing the presumed lesion positions at single-nucleotide resolution as well as create the expected mutperiod directory structure for each file.
+
+#### Parsing CPD-seq data for mutperiod.
+Mutperiod also has a function for parsing the CPD-seq bed files with dinucleotide lesion positions. Run the [ParseStandardBed](https://github.com/bmorledge-hampton19/mutperiod/blob/master/python_packages/mutperiod/mutperiodpy/input_parsing/ParseStandardBed.py) which is part of the mutperiod input_parsing module. Provide the relevant bed files and genome fasta, and the script should format the data for mutperiod from there.
+
+#### Expanding Lesion Context
+Later analysis expects that the called XR-seq lesions have trinucleotide context surrounding them. This can be achieved using the [ExpandContext.py](https://github.com/bmorledge-hampton19/mutperiod/blob/master/python_packages/mutperiod/mutperiodpy/ExpandContext.py) script, which is part of mutperiod. Simply run the script, select the "drosophila_data" directory containing all the directories with called XR-seq (but NOT CPD-seq) data formatted for mutperiod, and select "trinuc/quadrunuc" as the expansion context. The data should be converted to trinucleotide context and be suitable for the rest of the pipeline.
+
+#### Split Across Genic and Intergenic Positions
+In order to split the data accurately across genic and intergenic regions, overlapping gene designations need to be merged. This can be done using the [MergeGeneRanges.py](https://github.com/bmorledge-hampton19/Chromatin_Features_Analysis/blob/main/python_scripts/MergeGeneRanges.py) script in this repository. When running the script select the gene ranges file, and make sure to check the box labeled "Preserve Ambiguous Regions". The resulting merged genes file can then be used in tandem with any bed files to split the rows into genic and intergenic output files via the [SplitGenicAndIntergenic.py](https://github.com/bmorledge-hampton19/Chromatin_Features_Analysis/blob/main/python_scripts/SplitGenicAndIntergenic.py) scrip in this repository. Later steps in this analysis expect these split file types, so this script should be used to generate them by running it and providing it with the directory containing the XR-seq and CPD-seq data files (The relevant files will be acquired automatically.)
+
+As mentioned [previously](#preparing-directories-for-mutperiod), data stratification not directly supported by mutperiod has to be accompanied by manual stratification of the data files into their own individual directories. New directories need to be created for the new genic and intergenic variants of the newly created files. These directories should be named the same as their parent directories but with a "\_genic" or "\_intergenic" suffix. Lastly, these directories have to be prepared for the mutperiod pipeline. This can be achieved using the [ParsePreparedInput.py](https://github.com/bmorledge-hampton19/mutperiod/blob/master/python_packages/mutperiod/mutperiodpy/input_parsing/ParsePreparedInput.py) script from the mutperiod input_parsing module.
 
 #### Binning Across the Genome
 
@@ -106,7 +130,8 @@ When knitting figure generation notebooks, the figures are automatically output 
 
 ## Data Availability
 The data used for the analyses supported by this repository can be found at the following locations (All data relates to Drosophila Melanogaster):
-- dm6.chrom.sizes: [https://github.com/igvteam/igv/blob/master/genomes/sizes/dm6.chrom.sizes](https://github.com/igvteam/igv/blob/master/genomes/sizes/dm6.chrom.sizes)
+- dm6 genome: [https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.fa.gz](https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.fa.gz)
+- dm6 chromosome sizes: [https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes](https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes)
 - CPD-seq data: [NO-LINK-YET](NO-LINK-YET)
 - XR-seq data: [https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE138846](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE138846)
 - MNase map: [https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM1200479](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM1200479)
