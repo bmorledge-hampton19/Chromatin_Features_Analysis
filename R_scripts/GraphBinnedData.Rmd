@@ -11,12 +11,15 @@ params:
 
 ```{r setup_chunk}
 library(knitr)
-opts_chunk$set(dev = "png", dpi = 600, fig.width = 7, fig.height = 5)
+
 if (interactive()) {
   bioinformaticsDirectory = choose.dir(caption = "Select Bioinformatics_Projects Directory")
 } else {
   bioinformaticsDirectory = params$bioinformaticsDirectory
 }
+
+opts_chunk$set(dev = "png", dpi = 600, fig.width = 7, fig.height = 5,
+               fig.path = paste0("Drosophila_chromatin_domains_analysis_output",.Platform$file.sep))
 ```
 
 Get the relevant functions and binned counts data tables for graphing binned data
@@ -363,6 +366,10 @@ ggplot(medianRPKMByColor[Color_Domain != "GRAY"], aes(y = Median_RPKM, x = Color
 
   print(medianRPKMByColor[Color_Domain != "GRAY"])
 
+for (color in c("BLACK","BLUE","GREEN","RED","YELLOW")) {
+  print(drosGeneRPKMValuesColored[Color_Domain == color][order(-RPKM_value)])
+}
+  
 ```
 
 
@@ -963,13 +970,4 @@ ggplot(GOanalysis[Color_Domain == "Yellow"], aes(x=reorder(Category,length(Categ
   blankBackground
 ```
 
-
-```{r}
-RPKMdata = fread(file.path(drosophilaDataDir,"drosophila_S2_gene_RPKM_colored.tsv"))
-
-for (color in c("BLACK","BLUE","GREEN","RED","YELLOW")) {
-  print(RPKMdata[Color_Domain == color][order(-RPKM_value)])
-}
-
-```
 
