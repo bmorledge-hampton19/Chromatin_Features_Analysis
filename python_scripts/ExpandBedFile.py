@@ -2,7 +2,7 @@ from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog
 import os
 
 
-# This function takes a bed file expands its coordinates to encompass extra bases on each side.
+# This function takes a bed file and expands its coordinates to encompass extra bases on each side.
 # Returns the file path to the expanded bed file.
 def expandBedFile(baseBedFilePath: str, expansionRadius = 50):
 
