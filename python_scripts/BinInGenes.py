@@ -51,7 +51,7 @@ def main():
 
     # Create the Tkinter UI
     dialog = TkinterDialog(workingDirectory=workingDirectory)
-    dialog.createMultipleFileSelector("Feature Files (e.g. mutations):",0,"bin_me.bed",("Bed Files",".bed"))    
+    dialog.createMultipleFileSelector("Feature Files (e.g. mutations):",0,"context_mutations.bed",("Bed Files",".bed"))    
     dialog.createFileSelector("Gene Designations:",1,("Bed Files",".bed"))
     dialog.createCheckbox("Color Domain is present in 7th (index=6) column",2, 0)
 
@@ -65,7 +65,7 @@ def main():
     fileSuffixDialog = dialog.createDynamicSelector(4, 0)
     fileSuffixDialog.initCheckboxController("Custom file suffix")
     suffixDialog = fileSuffixDialog.initDisplay(True, "Suffix")
-    suffixDialog.createTextField("File Suffix:", 0, 0, defaultText="all_genes")
+    suffixDialog.createTextField("File Suffix:", 0, 0, defaultText="_flanked_colored")
     fileSuffixDialog.initDisplayState()
 
     # Run the UI
