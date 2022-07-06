@@ -1,5 +1,4 @@
 from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog
-from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import DataTypeStr
 from typing import List
 import os
 
@@ -86,7 +85,7 @@ def main():
 
     #Create the Tkinter UI
     dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__))
-    dialog.createMultipleFileSelector("Genome Feature Files:", 0, DataTypeStr.mutations + ".bed", ("Bed Files", ".bed"))
+    dialog.createMultipleFileSelector("Genome Feature Files:", 0, "context_mutations.bed", ("Bed Files", ".bed"))
     dialog.createFileSelector("Chromosome Sizes File:", 1, ("Text File",".txt"))
     dialog.createDropdown("Bin Size (bp):", 2, 0, ("1000","10000","100000","1000000"))
 
