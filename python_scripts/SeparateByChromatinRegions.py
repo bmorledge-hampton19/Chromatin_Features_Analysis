@@ -6,7 +6,8 @@
 import os, warnings
 from typing import List
 from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog, Selections
-from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import getDataDirectory, DataTypeStr, checkDirs
+from benbiohelpers.FileSystemHandling.DirectoryHandling import checkDirs
+
 
 class MutationData:
 
@@ -229,8 +230,8 @@ def separateByChromatinRegions(mutationFilePaths, domainRangesFilePath: str):
         print("\nWorking with",os.path.basename(mutationFilePath))
 
         # Make sure we have the expected file type.
-        if not DataTypeStr.mutations in os.path.basename(mutationFilePath): 
-            warnings.warn("Mutation file is expected to have \"" + DataTypeStr.mutations + "\" in the name.  Are you sure this is the right file type?")
+        if not "context_mutations" in os.path.basename(mutationFilePath): 
+            warnings.warn("Mutation file is expected to have \"" + "context_mutations" + "\" in the name.  Are you sure this is the right file type?")
 
         # Ready, set, go!
         counter = DomainSplitter(mutationFilePath, domainRangesFilePath)
@@ -239,16 +240,16 @@ def separateByChromatinRegions(mutationFilePaths, domainRangesFilePath: str):
 
 def main():
 
-    #Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
-    dialog.createMultipleFileSelector("Mutation Files:",0,DataTypeStr.mutations + ".bed",("Bed Files",".bed"))
-    dialog.createFileSelector("Domain Range File:", 1, ("Bed File",".bed"))
+    try:
+        from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import getDataDirectory
+        workingDirectory = getDataDirectory()
+    except ImportError:
+        workingDirectory = os.path.dirname(__file__)
 
-    # Run the UI
-    dialog.mainloop()
-
-    # If no input was received (i.e. the UI was terminated prematurely), then quit!
-    if dialog.selections is None: quit()
+    # Create the Tkinter UI
+    with TkinterDialog(workingDirectory=workingDirectory) as dialog:
+        dialog.createMultipleFileSelector("File(s) to separate:",0, "context_mutations.bed",("Bed Files",".bed"))
+        dialog.createFileSelector("Domain Range File:", 1, ("Bed File",".bed"))
 
     # Get the user's input from the dialog.
     selections: Selections = dialog.selections

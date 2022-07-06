@@ -2,7 +2,6 @@
 import os
 from typing import List
 from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog
-from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import getDataDirectory
 from benbiohelpers.CountThisInThat.Counter import ThisInThatCounter
 from benbiohelpers.CountThisInThat.OutputDataStratifiers import AmbiguityHandling
 
@@ -44,8 +43,14 @@ def binInGenes(featureFilePaths: List[str], geneDesignationsFilePath, flankingBi
 
 def main():
 
+    try:
+        from mutperiodpy.helper_scripts.UsefulFileSystemFunctions import getDataDirectory
+        workingDirectory = getDataDirectory()
+    except ImportError:
+        workingDirectory = os.path.dirname(__file__)
+
     # Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
+    dialog = TkinterDialog(workingDirectory=workingDirectory)
     dialog.createMultipleFileSelector("Feature Files (e.g. mutations):",0,"bin_me.bed",("Bed Files",".bed"))    
     dialog.createFileSelector("Gene Designations:",1,("Bed Files",".bed"))
     dialog.createCheckbox("Color Domain is present in 7th (index=6) column",2, 0)
