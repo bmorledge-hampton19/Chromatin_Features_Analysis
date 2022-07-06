@@ -7,7 +7,7 @@ import os
 def expandBedFile(baseBedFilePath: str, expansionRadius = 50):
 
     # Generate paths to the files needed to expand the binding motif.
-    expandedBedFilePath = baseBedFilePath.rsplit('.',1)[0] + "_expanded.bed"
+    expandedBedFilePath = f"{baseBedFilePath.rsplit('.',1)[0]}_{expansionRadius}bp_expanded.bed"
 
     # Expand the bed coordinates.
     print("Expanding nucleosome coordinates...")
@@ -17,8 +17,8 @@ def expandBedFile(baseBedFilePath: str, expansionRadius = 50):
             # Write the expanded positions to the new file, one line at a time.
             for line in baseBedFile:
                 choppedUpLine = line.strip().split('\t')
-                choppedUpLine[1] = str(int(choppedUpLine[1]) - 50)
-                choppedUpLine[2] = str(int(choppedUpLine[2]) + 50)
+                choppedUpLine[1] = str(int(choppedUpLine[1]) - expansionRadius)
+                choppedUpLine[2] = str(int(choppedUpLine[2]) + expansionRadius)
 
                 # Write the results to the expansion file as long as it is not before the start of the chromosome.
                 if int(choppedUpLine[1]) > -1: expandedBedFile.write('\t'.join(choppedUpLine) + '\n')
@@ -30,15 +30,11 @@ def expandBedFile(baseBedFilePath: str, expansionRadius = 50):
 def main():
 
     #Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__))
-    dialog.createFileSelector("Bed File:", 0, ("Bed Files",".bed"))
+    with TkinterDialog(workingDirectory=os.path.dirname(__file__)) as dialog:
+        dialog.createFileSelector("Bed File:", 0, ("Bed Files",".bed"))
+        dialog.createTextField("Expansion Radius:", 1, 0, defaultText="50")
 
-    # Run the UI
-    dialog.mainloop()
-
-    # If no input was received (i.e. the UI was terminated prematurely), then quit!
-    if dialog.selections is None: quit()
-
-    expandBedFile(dialog.selections.getIndividualFilePaths()[0])
+    expandBedFile(dialog.selections.getIndividualFilePaths()[0],
+                  int(dialog.selections.getTextEntries()[0]))
 
 if __name__ == "__main__": main()
