@@ -156,15 +156,15 @@ plotGeneBinData = function(geneBinsCountsTable, title = "", xAxisLabel = "Gene F
   if (plotYData3Only) {
 
     geneBinPlot = geneBinPlot +
-      geom_line(aes_string(y = yData3), size = 1.25) +
+      geom_line(aes_string(y = yData3), linewidth = 1.25) +
       geom_point(aes_string(y = yData3), size = 2)
 
   } else {
 
     geneBinPlot = geneBinPlot +
-      geom_line(aes_string(y = yData1, linetype = shQuote("dashed")), size = 1.25) +
+      geom_line(aes_string(y = yData1, linetype = shQuote("dashed")), linewidth = 1.25) +
       geom_point(aes_string(y = yData1), size = 2) +
-      geom_line(aes_string(y = yData2, linetype = shQuote("solid")), size = 1.25) +
+      geom_line(aes_string(y = yData2, linetype = shQuote("solid")), linewidth = 1.25) +
       geom_point(aes_string(y = yData2), size = 2) +
       scale_linetype_identity(guide = "legend", name = "", breaks = c("solid", "dashed"),
                               labels = c("Transcribed Strand", "Non-Transcribed Strand"))
@@ -350,7 +350,7 @@ plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "
   thisPlot = thisPlot +
     scale_color_manual(values = domainColors, guide = "none") +
     labs(title = title, x = xAxisLabel, y = yAxisLabel) +
-    geom_line(size = 1.25) + geom_point(size = 2) +
+    geom_line(linewidth = 1.25) + geom_point(size = 2) +
     coord_cartesian(ylim = ylim) +
     defaultTextScaling + blankBackground
 

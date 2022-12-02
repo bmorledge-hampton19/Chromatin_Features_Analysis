@@ -103,7 +103,7 @@ plotLombResult = function(lombData, title = "", xAxisLabel = "Period (bp)",
   }
 
   lombResultPlot = lombResultPlot +
-    geom_line(size = 2)
+    geom_line(linewidth = 2)
 
   if (is.null(manualColorOverride)) colors = domainColors
   else colors = manualColorOverride
@@ -307,7 +307,7 @@ plotPeriodicity = function(countsData, singleDataSet = TRUE,
 
     periodicityPlot = ggplot(countsData, aes_string("Dyad_Position", dataCol,
                                                          color = "Periodic_Position_Color")) +
-      geom_path(size = 1.25, lineend = "round", aes(group = 1))
+      geom_path(linewidth = 1.25, lineend = "round", aes(group = 1))
 
     # Determine whether the data is rotational, rotational+linker, or translational.
     rotational = FALSE
@@ -344,7 +344,7 @@ plotPeriodicity = function(countsData, singleDataSet = TRUE,
 
     periodicityPlot = ggplot(countsData, aes_string("Dyad_Position", dataCol,
                                                          color = "Color_Domain")) +
-      geom_line(size = 1.25) +
+      geom_line(linewidth = 1.25) +
       scale_color_manual(values = domainColors, guide = "none")
 
   }
@@ -385,8 +385,8 @@ plotPlusAndMinus = function(countsData, title = "", ylim = NULL,
                                 Minus_Strand_Counts = minusStrandCounts)
 
   ggplot(strandCountsData, aes(x = Dyad_Position)) +
-    geom_line(aes(y = Plus_Strand_Counts, color = "forestgreen"), size = 1.25) +
-    geom_line(aes(y = Minus_Strand_Counts, color = "red"), size = 1.25) +
+    geom_line(aes(y = Plus_Strand_Counts, color = "forestgreen"), linewidth = 1.25) +
+    geom_line(aes(y = Minus_Strand_Counts, color = "red"), linewidth = 1.25) +
     scale_color_identity(name = '', guide = "legend",
                          breaks = c("forestgreen", "red"),
                          labels = c("Plus Strand", "Minus Strand")) +
@@ -440,8 +440,8 @@ plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands
     labs(title = title, x = "Position Relative to Dyad (bp)", y = yAxisLabel) +
     facet_grid(factor(Timepoint, levels = expectedTimepoints)~Domain) +
     coord_cartesian(ylim = ylim) + blankBackground +
-    theme(panel.border = element_rect(color = "black", fill = NA, size = 1),
-          strip.background = element_rect(color = "black", size = 1))
+    theme(panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
+          strip.background = element_rect(color = "black", linewidth = 1))
 
   if (is.null(xBreaks)) {
     bulkCountsPlot = bulkCountsPlot +
