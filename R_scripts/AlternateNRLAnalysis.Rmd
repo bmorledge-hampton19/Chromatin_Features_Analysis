@@ -1,0 +1,150 @@
+---
+title: "Alternate_NRL_Analysis"
+output: html_document
+params:
+  bioinformaticsDirectory:
+    label: "Bioinformatics Projects Directory"
+    value: C:/Bioinformatics_Projects
+    input: select
+    choices: [C:/Bioinformatics_Projects, F:/Bioinformatics_Projects]
+---
+
+```{r setup_chunk}
+library(knitr)
+opts_chunk$set(dev = "png", dpi = 600, fig.width = 7, fig.height = 5)
+if (interactive()) {
+  bioinformaticsDirectory = choose.dir(caption = "Select Bioinformatics_Projects Directory")
+} else {
+  bioinformaticsDirectory = params$bioinformaticsDirectory
+}
+```
+
+
+Get the relevant data files for the NRL analysis
+```{r prep_nucleosome_map_periodicity_data}
+source(file.path(bioinformaticsDirectory, "Chromatin_Features_Analysis", "R_scripts", "PeriodicityAnalysis.R"))
+
+AltNRLDataDir = file.path(bioinformaticsDirectory, "mutperiod", "mutperiod_data", "NRL_analyses", "dm6")
+
+# Get nucleosome counts for full data sets.
+nucCountsFilePaths = list(black = file.path(AltNRLDataDir, "S2_nucleosome_map_BLACK_domain", "S2_nucleosome_map",
+                            "S2_nucleosome_map_BLACK_domain_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+                          blue = file.path(AltNRLDataDir, "S2_nucleosome_map_BLUE_domain", "S2_nucleosome_map",
+                            "S2_nucleosome_map_BLUE_domain_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+                          green = file.path(AltNRLDataDir, "S2_nucleosome_map_GREEN_domain", "S2_nucleosome_map",
+                            "S2_nucleosome_map_GREEN_domain_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+                          red = file.path(AltNRLDataDir, "S2_nucleosome_map_RED_domain", "S2_nucleosome_map",
+                            "S2_nucleosome_map_RED_domain_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+                          yellow = file.path(AltNRLDataDir, "S2_nucleosome_map_YELLOW_domain", "S2_nucleosome_map",
+                            "S2_nucleosome_map_YELLOW_domain_nuc-group_raw_nucleosome_mutation_counts.tsv"))
+
+# Get nucleosome counts for high expression data sets.
+nucCountsHighExpressionFilePaths = 
+  list(black = file.path(AltNRLDataDir, "S2_nucleosome_map_BLACK_domain_high_expression", "S2_nucleosome_map",
+                         "S2_nucleosome_map_BLACK_domain_high_expression_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+       blue = file.path(AltNRLDataDir, "S2_nucleosome_map_BLUE_domain_high_expression", "S2_nucleosome_map",
+                         "S2_nucleosome_map_BLUE_domain_high_expression_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+       green = file.path(AltNRLDataDir, "S2_nucleosome_map_GREEN_domain_high_expression", "S2_nucleosome_map",
+                         "S2_nucleosome_map_GREEN_domain_high_expression_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+       red = file.path(AltNRLDataDir, "S2_nucleosome_map_RED_domain_high_expression", "S2_nucleosome_map",
+                         "S2_nucleosome_map_RED_domain_high_expression_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+       yellow = file.path(AltNRLDataDir, "S2_nucleosome_map_YELLOW_domain_high_expression", "S2_nucleosome_map",
+                         "S2_nucleosome_map_YELLOW_domain_high_expression_nuc-group_raw_nucleosome_mutation_counts.tsv"))
+
+# Get nucleosome counts for low expression data sets.
+nucCountsLowExpressionFilePaths = 
+  list(black = file.path(AltNRLDataDir, "S2_nucleosome_map_BLACK_domain_low_expression", "S2_nucleosome_map",
+                         "S2_nucleosome_map_BLACK_domain_low_expression_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+       blue = file.path(AltNRLDataDir, "S2_nucleosome_map_BLUE_domain_low_expression", "S2_nucleosome_map",
+                         "S2_nucleosome_map_BLUE_domain_low_expression_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+       green = file.path(AltNRLDataDir, "S2_nucleosome_map_GREEN_domain_low_expression", "S2_nucleosome_map",
+                         "S2_nucleosome_map_GREEN_domain_low_expression_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+       red = file.path(AltNRLDataDir, "S2_nucleosome_map_RED_domain_low_expression", "S2_nucleosome_map",
+                         "S2_nucleosome_map_RED_domain_low_expression_nuc-group_raw_nucleosome_mutation_counts.tsv"),
+       yellow = file.path(AltNRLDataDir, "S2_nucleosome_map_YELLOW_domain_low_expression", "S2_nucleosome_map",
+                         "S2_nucleosome_map_YELLOW_domain_low_expression_nuc-group_raw_nucleosome_mutation_counts.tsv"))
+
+
+# Convert counts to lomb-scargle periodograms.
+nucCountsData = lapply(nucCountsFilePaths, fread)
+nucCountsLombResult = lapply(nucCountsData, function(x){getLombResult(x, TRANSLATIONAL, 147)})
+nucCountsPeriodAndSNR = lapply(nucCountsLombResult, getPeakPeriodicityAndSNR)
+nucCountsLombResult = rbindlist(lapply(seq_along(nucCountsLombResult), 
+                                function(i){data.table(Color_Domain = names(nucCountsLombResult)[i], 
+                                                       Periods = nucCountsLombResult[[i]]$scanned,
+                                                       Power = nucCountsLombResult[[i]]$power)}))
+
+nucCountsHighExpressionData = lapply(nucCountsHighExpressionFilePaths, fread)
+nucCountsHighExpressionLombResult = lapply(nucCountsHighExpressionData, function(x){getLombResult(x, TRANSLATIONAL, 147)})
+nucCountsHighExpressionPeriodAndSNR = lapply(nucCountsHighExpressionLombResult, getPeakPeriodicityAndSNR)
+nucCountsHighExpressionLombResult = rbindlist(lapply(
+  seq_along(nucCountsHighExpressionLombResult), 
+  function(i){data.table(Color_Domain = names(nucCountsHighExpressionLombResult)[i], 
+                         Periods = nucCountsHighExpressionLombResult[[i]]$scanned,
+                         Power = nucCountsHighExpressionLombResult[[i]]$power)}
+))
+
+nucCountsLowExpressionData = lapply(nucCountsLowExpressionFilePaths, fread)
+nucCountsLowExpressionLombResult = lapply(nucCountsLowExpressionData, function(x){getLombResult(x, TRANSLATIONAL, 147)})
+nucCountsLowExpressionPeriodAndSNR = lapply(nucCountsLowExpressionLombResult, getPeakPeriodicityAndSNR)
+nucCountsLowExpressionLombResult = rbindlist(lapply(
+  seq_along(nucCountsLowExpressionLombResult), 
+  function(i){data.table(Color_Domain = names(nucCountsLowExpressionLombResult)[i], 
+                         Periods = nucCountsLowExpressionLombResult[[i]]$scanned,
+                         Power = nucCountsLowExpressionLombResult[[i]]$power)}
+))
+
+
+```
+
+
+Plot lomb results for the NRL analysis
+```{r nucleosome_map_periodograms}
+plotLombResult(nucCountsLombResult, 
+               title = "Full Domains Compared to All Nucleosomes")
+plotLombResult(nucCountsHighExpressionLombResult, 
+               title = "Full Domains Compared to High Expression Nucleosomes")
+plotLombResult(nucCountsLowExpressionLombResult, 
+               title = "Full Domains Compared to Low Expression Nucleosomes")
+```
+
+
+Periodicity and SNR for NRL analysis
+```{r print_periodicity_and_SNR}
+print("All nucleosomes:")
+print(nucCountsPeriodAndSNR)
+print("High Expression Nucleosomes")
+print(nucCountsHighExpressionPeriodAndSNR)
+print("Low Expression Nucleosomes")
+print(nucCountsLowExpressionPeriodAndSNR)
+```
+
+
+
+Translational periodicity plots for NRL analysis
+```{r nucleosome_map_translational_periodicities, fig.width = 9, fig.height = 5}
+parseAndPlotPeriodicity(nucCountsData$black[Dyad_Position != 0], 
+                        title = "All Black Periodicity", fixedNRL = 185,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucCountsHighExpressionData$black[Dyad_Position != 0], 
+                        title = "High Expression Black Periodicity", fixedNRL = 186,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucCountsLowExpressionData$black[Dyad_Position != 0], 
+                        title = "Low Expression Black Periodicity", fixedNRL = 185,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucCountsData$yellow[Dyad_Position != 0], 
+                        title = "All Yellow Periodicity", fixedNRL = 174,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucCountsHighExpressionData$yellow[Dyad_Position != 0], 
+                        title = "High Expression Yellow Periodicity", fixedNRL = 173,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucCountsLowExpressionData$yellow[Dyad_Position != 0], 
+                        title = "Low Expression Yellow Periodicity", fixedNRL = 175,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucCountsHighExpressionData$green[Dyad_Position != 0], 
+                        title = "High Expression Green Periodicity", fixedNRL = 186,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+parseAndPlotPeriodicity(nucCountsLowExpressionData$green[Dyad_Position != 0], 
+                        title = "Low Expression Green Periodicity", fixedNRL = 174,
+                        dataCol = "Both_Strands_Counts", yAxisLabel = "Nucleosomes")
+```
