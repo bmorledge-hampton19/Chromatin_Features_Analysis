@@ -1,13 +1,21 @@
 # This script takes a gene designations file and one or more files of features (like mutations) to bin in fractions of that gene.
-import os
+# It also includes a function for plotting the results.
+import os, pandas, math
 from typing import List
 from benbiohelpers.TkWrappers.TkinterDialog import TkinterDialog
 from benbiohelpers.CountThisInThat.Counter import ThisInThatCounter
 from benbiohelpers.CountThisInThat.OutputDataStratifiers import AmbiguityHandling
+from benbiohelpers.Plotting.PlotnineHelpers import *
+from plotnine import *
 
 
 def binInGenes(featureFilePaths: List[str], geneDesignationsFilePath, flankingBinSize = 0, flankingBinNum = 0, 
                filePathSuffix = "", colorColIndex = None):
+    """
+    Count features (e.g., mutations) on the transcribed and nontranscribed strands of genes and bin them across 6 gene fractions.
+    The flankingBinSize and flankingBinNum parameters add additional bins of a constant length on the regions flanking genes (on each side). Importantly,
+    these regions must already be a part of the regions given in the gene designations file.
+    """
 
     class BinInGenesCounter(ThisInThatCounter):
 
@@ -39,6 +47,111 @@ def binInGenes(featureFilePaths: List[str], geneDesignationsFilePath, flankingBi
             metadataFile.write(f"Flanking_Bin_Size:\t{flankingBinSize}\n")
             metadataFile.write(f"Flanking_Bins_Each_Side:\t{flankingBinNum}\n")
             metadataFile.write(f"Gene_Designations_File_Path:\t{geneDesignationsFilePath}\n")
+
+
+domainColors = {"BLACK":"black", "black":"black", "BLUE":"blue", "blue":"blue",
+                 "GREEN":"forestgreen", "green":"forestgreen",
+                 "RED":"red", "red":"red", "YELLOW":"gold2", "yellow":"gold2",
+                 "GRAY":"gray", "gray":"gray"}
+
+# Given a path to a file with information on gene bins, return a binned counts data.table
+def parseGeneBinData(geneBinsCountsFilePath, backgroundFilePath = None, scalingFactor = None):
+
+    # Read in the data
+    geneBinsCountsTable = pandas.read_table(geneBinsCountsFilePath)
+
+    # Create columns for normalized counts
+    totalCounts = sum(geneBinsCountsTable["Coding_Strand_Counts"]) + sum(geneBinsCountsTable["Noncoding_Strand_Counts"])
+
+    # Add in a complementary (background) data set if it was given.
+    if backgroundFilePath is not None:
+        backgroundCountsTable = pandas.read_table(backgroundFilePath)
+        backgroundCountsTable = backgroundCountsTable.rename(columns = {"Coding_Strand_Counts":"Background_Coding_Strand_Counts",
+                                                                        "Noncoding_Strand_Counts":"Background_Noncoding_Strand_Counts"})
+        geneBinsCountsTable = geneBinsCountsTable.merge(backgroundCountsTable)
+
+        # If no scaling factor was given, compute it from the given data.
+        if scalingFactor is None:
+            scalingFactor = ((sum(geneBinsCountsTable["Background_Coding_Strand_Counts"]) +
+                              sum(geneBinsCountsTable["Background_Noncoding_Strand_Counts"])) /
+                             (sum(geneBinsCountsTable["Coding_Strand_Counts"]) +
+                              sum(geneBinsCountsTable["Noncoding_Strand_Counts"])))
+
+        # Remove rows with 0 counts.
+        geneBinsCountsTable = geneBinsCountsTable.loc[(geneBinsCountsTable["Coding_Strand_Counts"] > 0) &
+                                                      (geneBinsCountsTable["Noncoding_Strand_Counts"] > 0) &
+                                                      (geneBinsCountsTable["Background_Coding_Strand_Counts"] > 0) &
+                                                      (geneBinsCountsTable["Background_Noncoding_Strand_Counts"] > 0)].copy()
+
+        # Normalize, scale, and compute log ratios.
+        codingRawToBackgroundRatio = geneBinsCountsTable.Coding_Strand_Counts / geneBinsCountsTable.Background_Coding_Strand_Counts
+        noncodingRawToBackgroundRatio = geneBinsCountsTable.Noncoding_Strand_Counts / geneBinsCountsTable.Background_Noncoding_Strand_Counts
+
+        geneBinsCountsTable["Scaled_Coding_Ratio"] = codingRawToBackgroundRatio * scalingFactor
+        geneBinsCountsTable["Coding_Log_Ratio"] = geneBinsCountsTable.Scaled_Coding_Ratio.apply(lambda x:math.log(x,2))
+
+        geneBinsCountsTable["Scaled_Noncoding_Ratio"] = noncodingRawToBackgroundRatio * scalingFactor
+        geneBinsCountsTable["Noncoding_Log_Ratio"] = geneBinsCountsTable.Scaled_Noncoding_Ratio.apply(lambda x:math.log(x,2))
+
+        geneBinsCountsTable["TS_Vs_NTS_Log_Ratio"] = geneBinsCountsTable.Noncoding_Log_Ratio - geneBinsCountsTable.Coding_Log_Ratio
+
+    else:
+
+        # Remove rows with 0 counts.
+        geneBinsCountsTable = geneBinsCountsTable.loc[(geneBinsCountsTable["Coding_Strand_Counts"] > 0) &
+                                                      (geneBinsCountsTable["Noncoding_Strand_Counts"] > 0)].copy()
+
+        # Compute log ratio.
+        geneBinsCountsTable["TS_Vs_NTS_Log_Ratio"] = (geneBinsCountsTable.Noncoding_Strand_Counts / geneBinsCountsTable.Coding_Strand_Counts).apply(lambda x:math.log(x,2))
+
+    return(geneBinsCountsTable)
+
+
+def plotGeneBins(geneBinsCountsTable: pandas.DataFrame, title = "", xAxisLabel = "Gene Fraction Bin", yAxisLabel = "Log Ratio", ylim = None,
+                 yData1 = "Coding_Log_Ratio", yData2 = "Noncoding_Log_Ratio", yData3 = "TS_Vs_NTS_Log_Ratio",
+                 plotYData3Only = True, flankingBinSize = None, flankingBinNum = 0):
+
+    if ("Color_Domain" in geneBinsCountsTable.columns):
+        geneBinPlot = ggplot(geneBinsCountsTable.loc[geneBinsCountsTable.Color_Domain != "GRAY"], aes("Gene_Fraction", color = "Color_Domain"))
+        geneBinPlot = geneBinPlot + scale_color_manual(values = domainColors)
+    else:
+        geneBinPlot = ggplot(geneBinsCountsTable, aes("Gene_Fraction"))
+
+    if plotYData3Only:
+
+        geneBinPlot = (
+            geneBinPlot +
+            geom_line(aes(y = yData3), size = 1.25) +
+            geom_point(aes(y = yData3), size = 2)
+        )
+
+    else:
+
+        geneBinPlot = (geneBinPlot +
+            geom_line(aes(y = yData1, linetype = '"dashed"'), size = 1.25) +
+            geom_point(aes(y = yData1), size = 2) +
+            geom_line(aes(y = yData2, linetype = '"solid"'), size = 1.25) +
+            geom_point(aes(y = yData2), size = 2) +
+            scale_linetype_identity(guide = "legend", name = " ", breaks = ("dashed", "solid"),
+                                    labels = ("Non-Transcribed Strand", "Transcribed Strand"))
+        )
+
+    if flankingBinNum > 0:
+        geneBinPlot = geneBinPlot + scale_x_continuous(breaks = [i+0.5 for i in range(-flankingBinNum, 7 + flankingBinNum)], minor_breaks = None,
+                                                       labels = [-flankingBinNum*flankingBinSize] + ['']*(flankingBinNum-1) + ["TSS",'','','','','',"TES"] + 
+                                                                ['']*(flankingBinNum-1) + [flankingBinNum*flankingBinSize])
+    else:
+        geneBinPlot = geneBinPlot + scale_x_continuous(breaks = [i+0.5 for i in range(7)], minor_breaks = None,
+                                                       labels = ("TSS",'','','','','',"TES"))
+
+    geneBinPlot = (geneBinPlot +
+        labs(title = title, x = xAxisLabel, y = yAxisLabel) +
+        coord_cartesian(ylim = ylim, xlim = (min(geneBinsCountsTable.Gene_Fraction), max(geneBinsCountsTable.Gene_Fraction)+0.5)) +
+        geom_vline(xintercept = 0.5, linetype = "dashed") + geom_vline(xintercept = 6.5, linetype = "dashed") +
+        defaultTextScaling + blankBackground + theme(figure_size = (12,6))
+    )
+
+    return geneBinPlot
 
 
 def main():
