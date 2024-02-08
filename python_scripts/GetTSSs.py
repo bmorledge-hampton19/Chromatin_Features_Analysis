@@ -21,6 +21,9 @@ def getTSSs(geneDesignationsFilePaths: List[str]) -> List[str]:
         else: tssFilePath = geneDesignationsFilePath.rsplit(".bed", 1)[0] + "_TSSs.bed"
         tssFilePaths.append(tssFilePath)
 
+        # Create a set of TSS sites to make sure no duplicate entries slip through.
+        TSS_Sites = set()
+
         # Iterate through the file, writing each TSS based on whether the gene is on the plus or minus strand.
         with open(geneDesignationsFilePath, 'r') as geneDesignationsFile, open(tssFilePath, 'w') as tssFile:
 
@@ -31,6 +34,10 @@ def getTSSs(geneDesignationsFilePaths: List[str]) -> List[str]:
                 if splitLine[5] == '+': splitLine[2] = str(int(splitLine[1])+1)
                 elif splitLine[5] == '-': splitLine[1] = str(int(splitLine[2])-1)
                 else: print("Warning: Found line without + or - strand designation. Skipping."); continue
+
+                TSS_Site = (splitLine[0],splitLine[1],splitLine[2],splitLine[5])
+                if TSS_Site in TSS_Sites: print(f"Warning: Found duplicate TSS Site: {TSS_Site}\nSkipping."); continue
+                else: TSS_Sites.add(TSS_Site)
 
                 tssFile.write('\t'.join(splitLine)+'\n')
 
