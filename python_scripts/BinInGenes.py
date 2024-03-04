@@ -10,7 +10,7 @@ from plotnine import *
 
 
 def binInGenes(featureFilePaths: List[str], geneDesignationsFilePath, flankingBinSize = 0, flankingBinNum = 0, 
-               filePathSuffix = "", colorColIndex = None):
+               filePathSuffix = "", colorColIndex = None, geneFractionNum = 6):
     """
     Count features (e.g., mutations) on the transcribed and nontranscribed strands of genes and bin them across 6 gene fractions.
     The flankingBinSize and flankingBinNum parameters add additional bins of a constant length on the regions flanking genes (on each side). Importantly,
@@ -23,8 +23,8 @@ def binInGenes(featureFilePaths: List[str], geneDesignationsFilePath, flankingBi
             super().setUpOutputDataHandler()
             if colorColIndex is not None:
                 self.outputDataHandler.addSimpleEncompassingColStratifier(outputName = "Color_Domain", colIndex = colorColIndex)
-            self.outputDataHandler.addFeatureFractionStratifier(outputName = "Gene_Fraction", flankingBinSize = flankingBinSize, 
-                                                                flankingBinNum = flankingBinNum)
+            self.outputDataHandler.addFeatureFractionStratifier(outputName = "Gene_Fraction", fractionNum = geneFractionNum,
+                                                                flankingBinSize = flankingBinSize, flankingBinNum = flankingBinNum)
             self.outputDataHandler.addStrandComparisonStratifier(strandAmbiguityHandling = AmbiguityHandling.tolerate)
             if colorColIndex is None: customStratifyingNames=(None, {True:"Coding_Strand_Counts", False:"Noncoding_Strand_Counts"})
             else: customStratifyingNames=(None, None, {True:"Coding_Strand_Counts", False:"Noncoding_Strand_Counts"})
@@ -107,9 +107,9 @@ def parseGeneBinData(geneBinsCountsFilePath, backgroundFilePath = None, scalingF
     return(geneBinsCountsTable)
 
 
-def plotGeneBins(geneBinsCountsTable: pandas.DataFrame, title = "", xAxisLabel = "Gene Fraction Bin", yAxisLabel = "Log Ratio", ylim = None,
+def plotGeneBins(geneBinsCountsTable: pandas.DataFrame, title = "", xAxisLabel = "Gene Fraction Bin", yAxisLabel = "Log Ratio", ylim = None, xlim = None,
                  yData1 = "Coding_Log_Ratio", yData2 = "Noncoding_Log_Ratio", yData3 = "TS_Vs_NTS_Log_Ratio",
-                 plotYData3Only = True, flankingBinSize = None, flankingBinNum = 0):
+                 plotYData3Only = True, flankingBinSize = None, flankingBinNum = 0, geneFractionNum = 6):
 
     if ("Color_Domain" in geneBinsCountsTable.columns):
         geneBinPlot = ggplot(geneBinsCountsTable.loc[geneBinsCountsTable.Color_Domain != "GRAY"], aes("Gene_Fraction", color = "Color_Domain"))
@@ -137,17 +137,20 @@ def plotGeneBins(geneBinsCountsTable: pandas.DataFrame, title = "", xAxisLabel =
         )
 
     if flankingBinNum > 0:
-        geneBinPlot = geneBinPlot + scale_x_continuous(breaks = [i+0.5 for i in range(-flankingBinNum, 7 + flankingBinNum)], minor_breaks = None,
-                                                       labels = [-flankingBinNum*flankingBinSize] + ['']*(flankingBinNum-1) + ["TSS",'','','','','',"TES"] + 
+        geneBinPlot = geneBinPlot + scale_x_continuous(breaks = [i+0.5 for i in range(-flankingBinNum, geneFractionNum + flankingBinNum + 1)], minor_breaks = None,
+                                                       labels = [-flankingBinNum*flankingBinSize] + ['']*(flankingBinNum-1) +
+                                                                ["TSS"] + ['']*(geneFractionNum-1) + ["TES"] + 
                                                                 ['']*(flankingBinNum-1) + [flankingBinNum*flankingBinSize])
     else:
-        geneBinPlot = geneBinPlot + scale_x_continuous(breaks = [i+0.5 for i in range(7)], minor_breaks = None,
-                                                       labels = ("TSS",'','','','','',"TES"))
+        geneBinPlot = geneBinPlot + scale_x_continuous(breaks = [i+0.5 for i in range(geneFractionNum + 1)], minor_breaks = None,
+                                                       labels = ["TSS"] + ['']*(geneFractionNum-1) + ["TES"])
+
+    if xlim is None: xlim = (min(geneBinsCountsTable.Gene_Fraction), max(geneBinsCountsTable.Gene_Fraction)+0.5)
 
     geneBinPlot = (geneBinPlot +
         labs(title = title, x = xAxisLabel, y = yAxisLabel) +
-        coord_cartesian(ylim = ylim, xlim = (min(geneBinsCountsTable.Gene_Fraction), max(geneBinsCountsTable.Gene_Fraction)+0.5)) +
-        geom_vline(xintercept = 0.5, linetype = "dashed") + geom_vline(xintercept = 6.5, linetype = "dashed") +
+        coord_cartesian(ylim = ylim, xlim = xlim) +
+        geom_vline(xintercept = 0.5, linetype = "dashed") + geom_vline(xintercept = 0.5+geneFractionNum, linetype = "dashed") +
         defaultTextScaling + blankBackground + theme(figure_size = (12,6))
     )
 
