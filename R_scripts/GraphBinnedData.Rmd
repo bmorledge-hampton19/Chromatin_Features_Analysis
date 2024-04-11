@@ -189,6 +189,16 @@ createGgplotBinPlots(drosBinnedDamageData10.000bp, list(c("chr2L","chr2R"), c("c
 ```
 
 
+```{r genome-wide_bins_repair_vs_damage_all_chromosomes, fig.width = 12, fig.height=5}
+createGgplotBinPlots(drosBinnedRepairData10.000bp$min30, list(c("chr2L","chr2R"), c("chr3L","chr3R"), c("chr4"), c("chrX")),
+                     title = "Binned 30m UV Repair", ylim = c(-5,5), colorPlot = FALSE,
+                     yAxisLabel = expression("log"[2]*"(Repair/Damage)"))
+createGgplotBinPlots(drosBinnedDamageData10.000bp, list(c("chr2L","chr2R"), c("chr3L","chr3R"), c("chr4"), c("chrX")),
+                     title = "Binned UV Damage", ylim = c(-5,5), colorPlot = FALSE,
+                     yAxisLabel = expression("log"[2]*"(Cellular/Naked Damage)"))
+```
+
+
 ```{r genome-wide_bins_repair_vs_damage_single_arm, fig.width = 12, fig.height = 5}
 createGgplotBinPlots(drosBinnedRepairData10.000bp$min30[Bin_Start >= 5000000], list("chr2R"),
                      title = "Binned 30m UV Repair", ylim = c(-4,4), colorPlot = FALSE,
