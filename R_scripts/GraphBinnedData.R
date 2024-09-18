@@ -107,8 +107,8 @@ parseGeneBinData = function(geneBinsCountsFilePath, backgroundFilePath = NA,
 
     # If no scaling factor was given, compute it from the given data.
     if (is.null(scalingFactor)) {
-      scalingFactor = sum(geneBinsCountsTable$Background_Coding_Strand_Counts) +
-                      sum(geneBinsCountsTable$Background_Noncoding_Strand_Counts) /
+      scalingFactor = (sum(geneBinsCountsTable$Background_Coding_Strand_Counts) +
+                      sum(geneBinsCountsTable$Background_Noncoding_Strand_Counts)) /
                       ( sum(geneBinsCountsTable$Coding_Strand_Counts) +
                         sum(geneBinsCountsTable$Noncoding_Strand_Counts) )
     }
