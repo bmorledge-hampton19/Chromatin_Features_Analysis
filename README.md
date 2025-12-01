@@ -13,7 +13,7 @@
 ## Project Overview
 
 #### Accompanying Literature
-The code in this repository was primarily used to produce the findings in [NO LINK YET](). This paper contains additional insight into the analysis using this code.
+The code in this repository was primarily used to produce the findings in the paper [Ultraviolet damage and repair maps in _Drosophila_ reveal the impact of domain-specific changes in nucleosome repeat length on repair efficiency](https://doi.org/10.1101/gr.279605.124). This paper contains additional insight into the analysis using this code.
 
 #### Background
 Much of this analysis builds on [previous work](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC8349767/) examining mutation rates relative to nucleosome positions. This project utilizes the software from that previous work in tandem with a suite of new scripts to examine DNA damage and repair data relative to nucleosomes in Drosophila as well as stratifying that data across [five distinct chromatin domains](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3119929/). As a result, the python scripts contained in this repository are directed at organizing genomic features such as nucleosomes with respect to these chromatin domains in preparation for comparing them against DNA damage and repair rates. The R scripts and notebook in this repository are then used to format and plot the data.
@@ -167,7 +167,7 @@ When knitting figure generation notebooks, the figures are automatically output 
 The data used for the analyses supported by this repository can be found at the following locations (All data relates to Drosophila Melanogaster):
 - dm6 genome: [https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.fa.gz](https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.fa.gz)
 - dm6 chromosome sizes: [https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes](https://hgdownload.soe.ucsc.edu/goldenPath/dm6/bigZips/dm6.chrom.sizes)
-- CPD-seq data: [NO-LINK-YET](NO-LINK-YET)
+- CPD-seq data: [https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE267055](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE267055)
 - XR-seq data: [https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE138846](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE138846)
 - MNase map: [https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM1200479](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSM1200479)
 - Nucleosome map: [maintained_data/S2_nucleosome_map.bed](maintained_data/S2_nucleosome_map.bed)
