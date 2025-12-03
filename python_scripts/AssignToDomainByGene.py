@@ -52,7 +52,7 @@ def assignToDomainByGene(coloredGeneDesignationsFilePath: str, colorlessGeneData
 
 def main():
 
-    dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__))
+    dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__), title = "Assign to Domain by Gene")
     dialog.createFileSelector("Colored Gene Designations:", 0, ("Bed File",".bed"))
     dialog.createFileSelector("Colorless Gene Data (e.g. RPKM)", 1, ("Tab separated files",".tsv"))
 

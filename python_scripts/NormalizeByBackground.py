@@ -49,7 +49,7 @@ def normalizeByBackground(rawCountsFilePaths: str, backgroundCountsFilePath, hea
 def main():
 
     #Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
+    dialog = TkinterDialog(workingDirectory=getDataDirectory(), title = "Normalize by Background")
     dialog.createMultipleFileSelector("Raw Counts Files:",0, "binding_motif_mutation_counts.bed", ("Bed Files",".bed"), ("TSV files", ".tsv"))
     dialog.createFileSelector("Background Counts File:", 1, ("Bed Files",".bed"), ("TSV files", ".tsv"))
 

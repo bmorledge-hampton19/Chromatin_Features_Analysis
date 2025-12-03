@@ -75,7 +75,7 @@ def callBindingMotifs(peakRegionFilePaths: List[str], genomeFilePath, bindingMot
 def main():
 
     # Create a simple dialog for selecting the gene designation files.
-    dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__))
+    dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__), title = "Call Binding Motifs")
     dialog.createMultipleFileSelector("Peak Region Bed Files:", 0, "peak_regions.bed", 
                                       ("Bed Files", ".bed"))
     dialog.createFileSelector("Genome Fasta File:", 1, ("fasta File", ".fa"))

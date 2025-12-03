@@ -68,7 +68,7 @@ def mergeGeneRanges(geneDesignationsFilePaths: List[str], preserveAmbiguousStran
 def main():
 
     # Create a simple dialog for selecting the gene expression file.
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
+    dialog = TkinterDialog(workingDirectory=getDataDirectory(), title = "Merge Gene Ranges")
     dialog.createMultipleFileSelector("Gene Designations Files", 0, "gene_designations.bed", ("Bed File", ".bed"))
     dialog.createCheckbox("Preserve Ambiguous Regions", 1, 0)
     dialog.mainloop()

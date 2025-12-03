@@ -58,7 +58,7 @@ def getQuartileNucleosomePositions(quartileFilePaths: List[str], nucPosDir: str,
 def main():
 
     # Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
+    dialog = TkinterDialog(workingDirectory=getDataDirectory(), title = "Get Quartile Nucleosome Positions")
     dialog.createMultipleFileSelector("Quartile Files:",0, "quartile.tsv", ("Tab Separated Files",".tsv"))    
     dialog.createFileSelector("Nucleosome Directory:",1, directory=True)
     dialog.createDropdown("Stratification Type", 2, 0, ["h1 density", "other"])

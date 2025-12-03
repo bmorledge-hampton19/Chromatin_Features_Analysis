@@ -190,7 +190,7 @@ def isACompletelyPastB(A: EncompassingData, B: EncompassingData):
 def main():
 
     #Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__))
+    dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__), title = "Determine Bin Color")
     dialog.createFileSelector("Chromatin Domains File:", 0, ("Bed Files", ".bed"))
 
     binnerTypeDS = dialog.createDynamicSelector(1, 0)

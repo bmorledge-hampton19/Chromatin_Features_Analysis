@@ -30,7 +30,7 @@ def parseSpivakovToBed(spivakovFilePath: str, acceptableTFs = ("CTCF",)):
 def main():
 
     #Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__))
+    dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__), title = "Parse Spivakov to Bed")
     dialog.createFileSelector("Spivakov File:", 0, ("Text File",".txt"))
 
     # Run the UI

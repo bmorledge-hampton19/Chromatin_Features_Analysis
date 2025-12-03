@@ -62,7 +62,7 @@ def countFeaturesAboutNucleosomes(genomeFeaturesFilePaths: List[str], nucleosome
 def main():
 
     # Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
+    dialog = TkinterDialog(workingDirectory=getDataDirectory(), title = "CountFeaturesAboutNucleosomes")
     dialog.createMultipleFileSelector("Genome Feature Positions Files:",0,"context_mutations.bed",("Bed Files",".bed"))    
     dialog.createFileSelector("Nucleosome Dyad Center Positions:",1,("Bed Files",".bed"))
     dialog.createCheckbox("Only Count Linker", 2, 0)

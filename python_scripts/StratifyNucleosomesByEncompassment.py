@@ -67,7 +67,7 @@ def stratifyNucleosomesByEncompassment(encompassingFeaturesFilePath, nucleosomeF
 def main():
 
     # Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
+    dialog = TkinterDialog(workingDirectory=getDataDirectory(), title = "Stratify Nucleosomes by Encompassment")
     dialog.createFileSelector("Encompassing Feature File:",0,("Bed Files",".bed"))    
     dialog.createFileSelector("Nucleosome Dyad Center Positions:",1,("Bed Files",".bed"))
 

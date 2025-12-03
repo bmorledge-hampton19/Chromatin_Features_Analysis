@@ -21,7 +21,7 @@ def expandToBothStrands(bedFilePath: str):
 def main():
 
     # Create a simple dialog for selecting the gene designation files.
-    dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__))
+    dialog = TkinterDialog(workingDirectory=os.path.dirname(__file__), title = "Expand to Both Strands")
     dialog.createFileSelector("Bed File:", 0, ("bed file", ".bed"))
 
     dialog.mainloop()

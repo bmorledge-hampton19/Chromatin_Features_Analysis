@@ -24,7 +24,7 @@ def binRNASeqByChromatinDomainInGenes(rNASeqFilePath: str, geneDesignationsFileP
 def main():
 
     # Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
+    dialog = TkinterDialog(workingDirectory=getDataDirectory(), title = "Bin RNAseq by Chromatin Domain in Genes")
     dialog.createFileSelector("RNAseq File:",0,("Bed Files",".bed"))    
     dialog.createFileSelector("Gene Designations (color in 7th column):",1,("Bed Files",".bed"))
 

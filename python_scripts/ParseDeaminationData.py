@@ -153,7 +153,7 @@ def parseDeaminationData(cPDFilePaths: List[str], deaminationFilePaths: List[str
 def main():
 
     #Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
+    dialog = TkinterDialog(workingDirectory=getDataDirectory(), title = "Parse Deamination Data")
     dialog.createMultipleFileSelector("CPD Files:",0,"CPD_data.bed",("Bed Files",".bed"))
     dialog.createMultipleFileSelector("Deamination Files:", 1,"deamination_data.bed", ("Bed Files",".bed"))
     dialog.createFileSelector("Genome Fasta File:", 2, ("Fasta File",".fa"))

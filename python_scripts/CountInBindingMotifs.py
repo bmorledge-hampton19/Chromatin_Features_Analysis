@@ -290,7 +290,7 @@ def countInBindingMotifs(mutationFilePaths, bindingMotifsFilePaths):
 def main():
 
     #Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
+    dialog = TkinterDialog(workingDirectory=getDataDirectory(), title = "Count in Binding Motifs")
     dialog.createMultipleFileSelector("Mutation Files:",0,DataTypeStr.mutations + ".bed",("Bed Files",".bed"))
     dialog.createMultipleFileSelector("Binding Motifs Files:", 1, "binding_motifs.bed", ("Bed Files",".bed"))
 

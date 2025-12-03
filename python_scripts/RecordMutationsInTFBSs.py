@@ -32,7 +32,7 @@ def recordMutationsInTFBSs(mutationPosFilePath, tFBSPosFilePath, outputFilePath)
 def main():
 
     # Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
+    dialog = TkinterDialog(workingDirectory=getDataDirectory(), title = "Record Mutations in TFBSs")
     dialog.createFileSelector("Bed Mutation Data:",0,("Bed Files",".bed"))    
     dialog.createFileSelector("TFBS Positions:",1,("Bed Files",".bed"))
     dialog.createFileSelector("Output File:",2,("TSV Files",".tsv"), newFile = True)

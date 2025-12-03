@@ -30,7 +30,7 @@ def expandBedFile(baseBedFilePath: str, expansionRadius = 50):
 def main():
 
     #Create the Tkinter UI
-    with TkinterDialog(workingDirectory=os.path.dirname(__file__)) as dialog:
+    with TkinterDialog(workingDirectory=os.path.dirname(__file__), title = "Expand Bed File") as dialog:
         dialog.createFileSelector("Bed File:", 0, ("Bed Files",".bed"))
         dialog.createTextField("Expansion Radius:", 1, 0, defaultText="50")
 

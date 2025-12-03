@@ -166,7 +166,7 @@ def main():
         workingDirectory = os.path.dirname(__file__)
 
     # Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=workingDirectory)
+    dialog = TkinterDialog(workingDirectory=workingDirectory, title = "Bin in Genes")
     dialog.createMultipleFileSelector("Feature Files (e.g. mutations):",0,"context_mutations.bed",("Bed Files",".bed"))    
     dialog.createFileSelector("Gene Designations:",1,("Bed Files",".bed"))
     dialog.createCheckbox("Color Domain is present in 7th (index=6) column",2, 0)

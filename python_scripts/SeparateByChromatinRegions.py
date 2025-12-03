@@ -247,7 +247,7 @@ def main():
         workingDirectory = os.path.dirname(__file__)
 
     # Create the Tkinter UI
-    with TkinterDialog(workingDirectory=workingDirectory) as dialog:
+    with TkinterDialog(workingDirectory=workingDirectory, title = "Separate by Chromatin Regions") as dialog:
         dialog.createMultipleFileSelector("File(s) to separate:",0, "context_mutations.bed",("Bed Files",".bed"))
         dialog.createFileSelector("Domain Range File:", 1, ("Bed File",".bed"))
 

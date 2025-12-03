@@ -64,7 +64,7 @@ def splitGenicAndIntergenic(genomeFeaturesFilePaths: List[str], geneRegionsFileP
 def main():
 
     # Create the Tkinter UI
-    dialog = TkinterDialog(workingDirectory=getDataDirectory())
+    dialog = TkinterDialog(workingDirectory=getDataDirectory(), title = "Split Genic and Intergenic")
     dialog.createMultipleFileSelector("Genome Feature Positions Files:",0,"context_mutations.bed",("Bed Files",".bed"))    
     dialog.createFileSelector("Gene Ranges File (merged):",1,("Bed Files",".bed"))
 
