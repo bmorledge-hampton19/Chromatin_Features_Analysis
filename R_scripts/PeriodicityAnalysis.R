@@ -198,7 +198,7 @@ smoothValues = function(middlePos, data, dataCol, averagingRadius = 5) {
 
 
 parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "Normalized_Both_Strands",
-                                smoothTranslational = TRUE, fixedNRL = NULL) {
+                                smoothTranslational = TRUE, fixedNRL = NULL, scalingFactor = 1.0) {
 
   # If dataSet is a string, get the relevant counts and periodicity data for the given data set name.
   if (is.character(dataSet)) {
@@ -215,6 +215,7 @@ parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "N
     countsData = dataSet
     periodicityData = NULL
   }
+  countsData = copy(countsData)
   setkey(countsData, Dyad_Position)
 
   # Determine whether the data is rotational, rotational+linker, or translational.
@@ -235,9 +236,11 @@ parsePeriodicityData = function(dataSet, rotationalOnlyCutoff = 60, dataCol = "N
 
   # Smooth if translational and requested
   if (translational && smoothTranslational) {
-    countsData = copy(countsData)
     countsData[, (dataCol) := sapply(countsData$Dyad_Position, smoothValues, data = countsData, dataCol = dataCol)]
   }
+
+  # Scale data
+  countsData[,(dataCol) := countsData[[dataCol]]*scalingFactor]
 
   if (rotational) {
     # Color rotational positioning
@@ -404,7 +407,7 @@ addTimepointAndDomainInfo = function(dataSetName, smoothCols = list("Normalized_
                                      expectedTimepoints = c("10m", "30m", "8h", "16h", "24h"),
                                      expectedDomains = c("BLACK", "BLUE", "GREEN", "RED", "YELLOW")) {
 
-  timepoint = names(which(sapply(expectedTimepoints, function(x) grepl(x,dataSetName))))
+  timepoint = names(which(sapply(expectedTimepoints, function(x) grepl(paste0("_",x,"_"),dataSetName))))
   domain = names(which(sapply(expectedDomains, function(x) grepl(x,dataSetName))))
 
   if (length(timepoint) == 0 || length(domain) == 0) return(data.table())
@@ -433,12 +436,13 @@ plotBulkCountsData = function(bulkCountsData, dataCol = "Normalized_Both_Strands
                               expectedTimepoints = c("10m", "30m", "8h", "16h", "24h"),
                               title = "", xBreaks = NULL, yBreaks = NULL, ylim = NULL,
                               yAxisLabel = "Repair/Damage",
-                              xAxisLabel = "Position Relative to Dyad (bp)") {
+                              xAxisLabel = "Position Relative to Dyad (bp)",
+                              scales = "fixed") {
   bulkCountsPlot = ggplot(bulkCountsData, aes_string("Dyad_Position", dataCol, color = "Domain")) +
     scale_color_manual(values = domainColors, guide = "none") +
     geom_line() +
     labs(title = title, x = "Position Relative to Dyad (bp)", y = yAxisLabel) +
-    facet_grid(factor(Timepoint, levels = expectedTimepoints)~Domain) +
+    facet_grid(factor(Timepoint, levels = expectedTimepoints)~Domain, scales = scales) +
     coord_cartesian(ylim = ylim) + blankBackground +
     theme(panel.border = element_rect(color = "black", fill = NA, linewidth = 1),
           strip.background = element_rect(color = "black", linewidth = 1))

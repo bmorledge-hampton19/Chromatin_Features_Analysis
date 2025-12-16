@@ -77,6 +77,8 @@ parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA,
     rawToBackgroundRatio = binnedCountsTable$Feature_Counts / binnedCountsTable$Background_Feature_Counts
     binnedCountsTable[, Scaled_Raw_To_Background_Ratio := rawToBackgroundRatio * scalingFactor]
     binnedCountsTable[, Log_Ratio := log(Scaled_Raw_To_Background_Ratio,2)]
+  } else if (!is.null(scalingFactor)) {
+    binnedCountsTable[, Scaled_Feature_Counts := Feature_Counts * scalingFactor]
   }
 
   return(binnedCountsTable)
@@ -131,6 +133,12 @@ parseGeneBinData = function(geneBinsCountsFilePath, backgroundFilePath = NA,
     geneBinsCountsTable[, Noncoding_Log_Ratio := log(Scaled_Noncoding_Ratio,2)]
 
     geneBinsCountsTable[, TS_Vs_NTS_Log_Ratio := Noncoding_Log_Ratio - Coding_Log_Ratio]
+  } else if (!is.null(scalingFactor)) {
+    geneBinsCountsTable[, Scaled_Coding_Counts := Coding_Strand_Counts * scalingFactor]
+    geneBinsCountsTable[, Scaled_Noncoding_Counts := Noncoding_Strand_Counts * scalingFactor]
+    geneBinsCountsTable[, TS_Vs_NTS_Log_Ratio := log(Scaled_Noncoding_Counts/Scaled_Coding_Counts)]
+  } else {
+    geneBinsCountsTable[, TS_Vs_NTS_Log_Ratio := log(Noncoding_Strand_Counts/Coding_Strand_Counts)]
   }
 
   return(geneBinsCountsTable)
@@ -328,10 +336,11 @@ plotLogRatioDistribution = function(binnedCountsTable, plotType, title = "", yDa
 # Requires two parallel lists of binned counts tables and time points (as numeric values).
 plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "",
                                        xAxisLabel = "Timepoint", yAxisLabel = "Log Ratio", ylim = NULL,
-                                       lineTypeColumn = NULL, lineTypeMapping = NULL) {
+                                       lineTypeColumn = NULL, lineTypeMapping = NULL, yData = "Log_Ratio") {
 
-  masterMedianTable = rbindlist(mapply(getMedianTable, binnedCountsTables,
-                                       timePoints, MoreArgs = list(lineTypeColumn), SIMPLIFY = FALSE))
+  masterMedianTable = rbindlist(mapply(getMedianTable, binnedCountsTables, timePoints,
+                                       MoreArgs = list(lineTypeColumn = lineTypeColumn, medianDataColumn = yData),
+                                       SIMPLIFY = FALSE))
 
   # Graph a line for each color.
   thisPlot = ggplot(masterMedianTable, aes(Time, Median, color = Majority_Domain_Color))
@@ -361,15 +370,15 @@ plotLogRatioMediansOverTime = function(binnedCountsTables, timePoints, title = "
 
 # A function for producing a table of median log_ratio values with the domain color and
 # time point (as a numeric value) included as columns.
-getMedianTable = function(binnedCountsTable, timePoint, lineTypeColumn) {
+getMedianTable = function(binnedCountsTable, timePoint, lineTypeColumn, medianDataColumn = "Log_Ratio") {
 
   if (is.null(lineTypeColumn)) {
     return(binnedCountsTable[Majority_Domain_Color != "GRAY" & Majority_Domain_Color != "WHITE",
-                             .(Median = median(Log_Ratio), Time = timePoint),
+                             .(Median = median(get(medianDataColumn)), Time = timePoint),
                              Majority_Domain_Color])
   } else {
     return(binnedCountsTable[Majority_Domain_Color != "GRAY" & Majority_Domain_Color != "WHITE",
-                             .(Median = median(Log_Ratio), Time = timePoint),
+                             .(Median = median(get(medianDataColumn)), Time = timePoint),
                              by = setNames(list(get("Majority_Domain_Color"), get(lineTypeColumn)),
                                            c("Majority_Domain_Color",lineTypeColumn))])
   }
