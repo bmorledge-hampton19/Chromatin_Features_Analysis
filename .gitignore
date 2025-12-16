@@ -168,5 +168,8 @@ test*
 
 # R notebook output
 Drosophila_chromatin_domains_analysis_output/
+Drosophila_CPDseq_chromatin_domains_analysis_output_rep1/
+Drosophila_CPDseq_chromatin_domains_analysis_output_rep2/
+Drosophila_CPDseq_chromatin_domains_analysis_output_all_reps/
 GraphBinnedData_cache/
 R_scripts/GraphBinnedData.html
