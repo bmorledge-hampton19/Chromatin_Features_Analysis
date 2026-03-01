@@ -18,7 +18,7 @@ if (interactive()) {
   bioinformaticsDirectory = params$bioinformaticsDirectory
 }
 
-rep = "rep1"
+rep = "rep2"
 bioinformaticsDirectory = "//wsl.localhost/Ubuntu/home/ben/bioinformatics"
 
 opts_chunk$set(dev = "png", dpi = 600, fig.width = 7, fig.height = 5,
@@ -37,7 +37,8 @@ binnedColorDomains100.000bpFilePath = file.path(drosophilaChromatinDomainsDir,
 
 # Get file paths related to CPD data in genome-wide bins.
 drosophilaDataDir = file.path(bioinformaticsDirectory, "data", "sequencing_data", "Marian", "Drosophila_CPDseq")
-noUV100.000bpFilePath = file.path(drosophilaDataDir, paste0("Dm_no_UV_rep1"), "Dm_no_UV_rep1_singlenuc_context_mutations_100000bp_binned.tsv")
+noUV100.000bpFilePath = file.path(drosophilaDataDir, paste0("Dm_no_UV_",rep),
+                                  paste0("Dm_no_UV_",rep,"_singlenuc_context_mutations_100000bp_binned.tsv"))
 uva100.000bpFilePaths = list(
   min0  = file.path(drosophilaDataDir, paste0("Dm_UVA_0min_",rep), paste0("Dm_UVA_0min_",rep,"_singlenuc_context_mutations_100000bp_binned.tsv")),
   min10 = file.path(drosophilaDataDir, paste0("Dm_UVA_10min_",rep), paste0("Dm_UVA_10min_",rep,"_singlenuc_context_mutations_100000bp_binned.tsv")),
@@ -49,15 +50,15 @@ noUVA30min100.000bpFilePath = file.path(drosophilaDataDir, "Dm_no_UVA_30min_rep1
 # Get file paths for 10,000 bp genome-wide bins using the file paths for 100,000 bp bins.
 binnedColorDomains10.000bpFilePath = sub("100000", "10000", binnedColorDomains100.000bpFilePath)
 noUV10.000bpFilePath = sub("100000", "10000", noUV100.000bpFilePath)
-uva10.000bpFilePaths = sapply(uva100.000bpFilePaths, function(x) sub("100000", "10000", x))
+uva10.000bpFilePaths = sapply(uva100.000bpFilePaths, function(x) sub("100000", "10000", x), simplify = FALSE)
 noUVA30min10.000bpFilePath = sub("100000", "10000", noUVA30min100.000bpFilePath)
 
 noUV10.000bpGenicFilePath = sub("mutations", "mutations_genic", noUV10.000bpFilePath)
-uva10.000bpGenicFilePaths = sapply(uva10.000bpFilePaths, function(x) sub("mutations", "mutations_genic", x))
+uva10.000bpGenicFilePaths = sapply(uva10.000bpFilePaths, function(x) sub("mutations", "mutations_genic", x), simplify = FALSE)
 noUVA30min10.000bpGenicFilePath = sub("mutations", "mutations_genic", noUVA30min10.000bpFilePath)
 
 noUV10.000bpIntergenicFilePath = sub("genic", "intergenic", noUV10.000bpGenicFilePath)
-uva10.000bpIntergenicFilePaths = sapply(uva10.000bpGenicFilePaths, function(x) sub("genic", "intergenic", x))
+uva10.000bpIntergenicFilePaths = sapply(uva10.000bpGenicFilePaths, function(x) sub("genic", "intergenic", x), simplify = FALSE)
 noUVA30min10.000bpIntergenicFilePath = sub("genic", "intergenic", noUVA30min10.000bpGenicFilePath)
 
 # Get scaling factors for the UVA data
@@ -76,7 +77,8 @@ uva100.000bp = mapply(
   parseBinData, uva100.000bpFilePaths,
   scalingFactor = uvaScalingFactors, SIMPLIFY = FALSE,
   MoreArgs = list(
-    binnedColorDomainsFilePath = binnedColorDomains100.000bpFilePath
+    binnedColorDomainsFilePath = binnedColorDomains100.000bpFilePath,
+    backgroundBinCountsFilePath = uva100.000bpFilePaths$min0
   )
 )
 noUVA30min100.000bp = parseBinData(noUVA30min100.000bpFilePath, binnedColorDomains100.000bpFilePath, scalingFactor = noUVAScalingFactor)
@@ -86,7 +88,8 @@ uva10.000bp = mapply(
   parseBinData, uva10.000bpFilePaths,
   scalingFactor = uvaScalingFactors, SIMPLIFY = FALSE,
   MoreArgs = list(
-    binnedColorDomainsFilePath = binnedColorDomains10.000bpFilePath
+    binnedColorDomainsFilePath = binnedColorDomains10.000bpFilePath,
+    backgroundBinCountsFilePath = uva10.000bpFilePaths$min0
   )
 )
 noUVA30min10.000bp = parseBinData(noUVA30min10.000bpFilePath, binnedColorDomains10.000bpFilePath, scalingFactor = noUVAScalingFactor)
@@ -97,7 +100,8 @@ uva10.000bpGenic = mapply(
   parseBinData, uva10.000bpGenicFilePaths,
   scalingFactor = uvaScalingFactors, SIMPLIFY = FALSE,
   MoreArgs = list(
-    binnedColorDomainsFilePath = binnedColorDomains10.000bpFilePath
+    binnedColorDomainsFilePath = binnedColorDomains10.000bpFilePath,
+    backgroundBinCountsFilePath = uva10.000bpGenicFilePaths$min0
   )
 )
 captureOutput = lapply(uva10.000bpGenic, 
@@ -113,7 +117,8 @@ uva10.000bpIntergenic = mapply(
   parseBinData, uva10.000bpIntergenicFilePaths,
   scalingFactor = uvaScalingFactors, SIMPLIFY = FALSE,
   MoreArgs = list(
-    binnedColorDomainsFilePath = binnedColorDomains10.000bpFilePath
+    binnedColorDomainsFilePath = binnedColorDomains10.000bpFilePath,
+    backgroundBinCountsFilePath = uva10.000bpIntergenicFilePaths$min0
   )
 )
 captureOutput = lapply(uva10.000bpIntergenic, 
@@ -136,7 +141,8 @@ noUVA30min10.000bpGenicVsIntergenic = rbindlist(list(noUVA30min10.000bpGenic, no
 
 # Get file paths for the gene bins data
 noUVGeneBinFlankedFilePath = file.path(
-  drosophilaDataDir, "Dm_no_UV_rep1", "Dm_no_UV_rep1_singlenuc_context_mutations_gene_bins_flanked.tsv"
+  drosophilaDataDir, paste0("Dm_no_UV_",rep),
+  paste0("Dm_no_UV_",rep,"_singlenuc_context_mutations_gene_bins_flanked.tsv")
 )
 uvaGeneBinFlankedFilePaths = list(
   min0  = file.path(drosophilaDataDir, paste0("Dm_UVA_0min_",rep),
@@ -186,15 +192,15 @@ createGgplotBinPlots(noUV10.000bp, list(c("chr2L","chr2R"), c("chr3L","chr3R"), 
 createGgplotBinPlots(uva10.000bp$min0, list(c("chr2L","chr2R"), c("chr3L","chr3R"), c("chr4"), c("chrX")),
                      "Scaled_Feature_Counts",
                      title = "UVA 0min", ylim = c(0,5*10**5), colorPlot = FALSE,
-                     yAxisLabel = expression("log"[2]*"(Repair/Damage)"))
+                     yAxisLabel = "CPDs (Scaled)")
 createGgplotBinPlots(uva10.000bp$min10, list(c("chr2L","chr2R"), c("chr3L","chr3R"), c("chr4"), c("chrX")),
                      "Scaled_Feature_Counts",
                      title = "UVA 10min", ylim = c(0,5*10**5), colorPlot = FALSE,
-                     yAxisLabel = expression("log"[2]*"(Repair/Damage)"))
+                     yAxisLabel = "CPDs (Scaled)")
 createGgplotBinPlots(uva10.000bp$min20, list(c("chr2L","chr2R"), c("chr3L","chr3R"), c("chr4"), c("chrX")),
                      "Scaled_Feature_Counts",
                      title = "UVA 20min", ylim = c(0,5*10**5), colorPlot = FALSE,
-                     yAxisLabel = expression("log"[2]*"(Repair/Damage)"))
+                     yAxisLabel = "CPDs (Scaled)")
 createGgplotBinPlots(uva10.000bp$min30, list(c("chr2L","chr2R"), c("chr3L","chr3R"), c("chr4"), c("chrX")),
                      "Scaled_Feature_Counts",
                      title = "UVA 30min", ylim = c(0,5*10**5), colorPlot = FALSE,
@@ -203,6 +209,27 @@ createGgplotBinPlots(noUVA30min10.000bp, list(c("chr2L","chr2R"), c("chr3L","chr
                      "Scaled_Feature_Counts",
                      title = "No UVA 30min", ylim = c(0,5*10**5), colorPlot = FALSE,
                      yAxisLabel = "CPDs (Scaled)")
+```
+
+```{r genome-wide_bins_fraction_remaining, fig.width = 12, fig.height=5}
+options(scipen=10000)
+
+createGgplotBinPlots(uva10.000bp$min0, list(c("chr2L","chr2R"), c("chr3L","chr3R"), c("chr4"), c("chrX")),
+                     "Raw_To_Background_Ratio",
+                     title = "UVA 0min", ylim = c(0,1), colorPlot = FALSE,
+                     yAxisLabel = "CPD Fraction Remaining")
+createGgplotBinPlots(uva10.000bp$min10, list(c("chr2L","chr2R"), c("chr3L","chr3R"), c("chr4"), c("chrX")),
+                     "Raw_To_Background_Ratio",
+                     title = "UVA 10min", ylim = c(0,1), colorPlot = FALSE,
+                     yAxisLabel = "CPD Fraction Remaining")
+createGgplotBinPlots(uva10.000bp$min20, list(c("chr2L","chr2R"), c("chr3L","chr3R"), c("chr4"), c("chrX")),
+                     "Raw_To_Background_Ratio",
+                     title = "UVA 20min", ylim = c(0,1), colorPlot = FALSE,
+                     yAxisLabel = "CPD Fraction Remaining")
+createGgplotBinPlots(uva10.000bp$min30, list(c("chr2L","chr2R"), c("chr3L","chr3R"), c("chr4"), c("chrX")),
+                     "Raw_To_Background_Ratio",
+                     title = "UVA 30min", ylim = c(0,1), colorPlot = FALSE,
+                     yAxisLabel = "CPD Fraction Remaining")
 ```
 
 Narrow in on chr3R
@@ -228,6 +255,23 @@ createGgplotBinPlots(noUVA30min10.000bp, list("chr3R"), "Scaled_Feature_Counts",
                      yAxisLabel = "CPDs (Scaled)")
 ```
 
+```{r genome-wide_bins_single_arm_colored_fraction_remaining, fig.width = 12, fig.height=5}
+options(scipen=10000)
+
+createGgplotBinPlots(uva10.000bp$min0, list("chr3R"), "Raw_To_Background_Ratio",
+                     title = "UVA 0min", ylim = c(0,1), colorPlot = TRUE,
+                     yAxisLabel = "CPD Fraction Remaining")
+createGgplotBinPlots(uva10.000bp$min10, list("chr3R"), "Raw_To_Background_Ratio",
+                     title = "UVA 10min", ylim = c(0,1), colorPlot = TRUE,
+                     yAxisLabel = "CPD Fraction Remaining")
+createGgplotBinPlots(uva10.000bp$min20, list("chr3R"), "Raw_To_Background_Ratio",
+                     title = "UVA 20min", ylim = c(0,1), colorPlot = TRUE,
+                     yAxisLabel = "CPD Fraction Remaining")
+createGgplotBinPlots(uva10.000bp$min30, list("chr3R"), "Raw_To_Background_Ratio",
+                     title = "UVA 30min", ylim = c(0,1), colorPlot = TRUE,
+                     yAxisLabel = "CPD Fraction Remaining")
+
+```
 
 Plot boxplots of binned CPD counts
 ```{r genome-wide_bins_boxplots}
@@ -245,12 +289,26 @@ plotLogRatioDistribution(uva10.000bp$min20, BOXPLOT,
                          yAxisLabel = "CPDs (Scaled)", ylim = c(0,10**5))
 plotLogRatioDistribution(uva10.000bp$min30, BOXPLOT, 
                          title = "UVA 30min", "Scaled_Feature_Counts",
-                         yAxisLabel = "CPDs (Scaled)", ylim = c(0,10**5))
+                         yAxisLabel = "CPDs (Scaled)", ylim = c(0,10**4))
 plotLogRatioDistribution(noUVA30min10.000bp, BOXPLOT, 
                          title = "No UVA 30min", "Scaled_Feature_Counts",
                          yAxisLabel = "CPDs (Scaled)", ylim = c(0,10**5))
 ```
 
+```{r genome-wide_bins_boxplots_fraction_remaining}
+plotLogRatioDistribution(uva10.000bp$min0, BOXPLOT, 
+                         title = "UVA 0min", "Raw_To_Background_Ratio",
+                         yAxisLabel = "CPD Fraction Remaining", ylim = c(0,1))
+plotLogRatioDistribution(uva10.000bp$min10, BOXPLOT, 
+                         title = "UVA 10min", "Raw_To_Background_Ratio",
+                         yAxisLabel = "CPD Fraction Remaining", ylim = c(0,1))
+plotLogRatioDistribution(uva10.000bp$min20, BOXPLOT, 
+                         title = "UVA 20min", "Raw_To_Background_Ratio",
+                         yAxisLabel = "CPD Fraction Remaining", ylim = c(0,1))
+plotLogRatioDistribution(uva10.000bp$min30, BOXPLOT, 
+                         title = "UVA 30min", "Raw_To_Background_Ratio",
+                         yAxisLabel = "CPD Fraction Remaining", ylim = c(0,1))
+```
 
 Boxplots of binned CPD counts stratified by genic vs. intergenic regions
 ```{r genic_vs_intergenic_boxplots}
@@ -274,6 +332,21 @@ plotLogRatioDistribution(noUVA30min10.000bpGenicVsIntergenic, BOXPLOT, yData = "
                          facetColumn = "Genic_Or_Intergenic")
 ```
 
+```{r genic_vs_intergenic_boxplots_fraction_remaining}
+plotLogRatioDistribution(uva10.000bpGenicVsIntergenic$min0, BOXPLOT, yData = "Raw_To_Background_Ratio",
+                         title = "UVA 0min Genic Vs. Intergenic", yAxisLabel = "CPD Fraction Remaining", ylim = c(0,1),
+                         facetColumn = "Genic_Or_Intergenic")
+plotLogRatioDistribution(uva10.000bpGenicVsIntergenic$min10, BOXPLOT, yData = "Raw_To_Background_Ratio",
+                         title = "UVA 10min Genic Vs. Intergenic", yAxisLabel = "CPD Fraction Remaining", ylim = c(0,1),
+                         facetColumn = "Genic_Or_Intergenic")
+plotLogRatioDistribution(uva10.000bpGenicVsIntergenic$min20, BOXPLOT, yData = "Raw_To_Background_Ratio",
+                         title = "UVA 20min Genic Vs. Intergenic", yAxisLabel = "CPD Fraction Remaining", ylim = c(0,1),
+                         facetColumn = "Genic_Or_Intergenic")
+plotLogRatioDistribution(uva10.000bpGenicVsIntergenic$min30, BOXPLOT, yData = "Raw_To_Background_Ratio",
+                         title = "UVA 30min Genic Vs. Intergenic", yAxisLabel = "CPD Fraction Remaining", ylim = c(0,1),
+                         facetColumn = "Genic_Or_Intergenic")
+```
+
 
 Plot CPDs over time
 ```{r repair_over_time}
@@ -282,6 +355,11 @@ plotLogRatioMediansOverTime(uva10.000bp, timePoints = c(0, 10, 20, 30), yData = 
                             xAxisLabel = "Repair Timepoint (minutes)", ylim = c(0,10**5))
 ```
 
+```{r repair_over_time_fraction_remaining}
+plotLogRatioMediansOverTime(uva10.000bp, timePoints = c(0, 10, 20, 30), yData = "Raw_To_Background_Ratio",
+                            title = "UVA CPD Timescale", yAxisLabel = "CPD Fraction Remaining",
+                            xAxisLabel = "Repair Timepoint (minutes)", ylim = c(0,1))
+```
 
 Whole genome TS vs. NTS Plots
 ```{r TS_to_NTS_repair}
@@ -406,7 +484,7 @@ plotLombResult(rbindlist(list(nucSelfCountsSubsetLombResult,
 
 
 ```{r setup-chunk2}
-mutperiodData = file.path(drosophilaDataDir, paste0("Marian_Drosophila_CPD-seq_periodicity_analysis.rda"))
+mutperiodData = file.path(drosophilaDataDir, paste0("Marian_Drosophila_CPD-seq_",rep,"_periodicity_analysis.rda"))
 knitr::opts_template$set(mutperiodData = list(cache = TRUE, 
                                               cache.extra = na.fail(tools::md5sum(mutperiodData))))
 ```
@@ -418,12 +496,12 @@ load(mutperiodData)
 dataSetNames = as.list(setNames(nm = mutperiodData$periodicityResults$Data_Set))
 
 noUVTrans = list(
-  all = mutperiodData$rawNucleosomeCountsTables[["Dm_no_UV_rep1_nuc-group_raw"]],
-  black = mutperiodData$rawNucleosomeCountsTables[["Dm_no_UV_rep1_BLACK_domain_nuc-group_raw"]],
-  blue = mutperiodData$rawNucleosomeCountsTables[["Dm_no_UV_rep1_BLUE_domain_nuc-group_raw"]],
-  green = mutperiodData$rawNucleosomeCountsTables[["Dm_no_UV_rep1_GREEN_domain_nuc-group_raw"]],
-  red = mutperiodData$rawNucleosomeCountsTables[["Dm_no_UV_rep1_RED_domain_nuc-group_raw"]],
-  yellow = mutperiodData$rawNucleosomeCountsTables[["Dm_no_UV_rep1_YELLOW_domain_nuc-group_raw"]]
+  all = mutperiodData$rawNucleosomeCountsTables[[paste0("Dm_no_UV_",rep,"_nuc-group_raw")]],
+  black = mutperiodData$rawNucleosomeCountsTables[[paste0("Dm_no_UV_",rep,"_BLACK_domain_nuc-group_raw")]],
+  blue = mutperiodData$rawNucleosomeCountsTables[[paste0("Dm_no_UV_",rep,"_BLUE_domain_nuc-group_raw")]],
+  green = mutperiodData$rawNucleosomeCountsTables[[paste0("Dm_no_UV_",rep,"_GREEN_domain_nuc-group_raw")]],
+  red = mutperiodData$rawNucleosomeCountsTables[[paste0("Dm_no_UV_",rep,"_RED_domain_nuc-group_raw")]],
+  yellow = mutperiodData$rawNucleosomeCountsTables[[paste0("Dm_no_UV_",rep,"_YELLOW_domain_nuc-group_raw")]]
 )
 
 uvaTrans = mapply(function (x,y) list(
@@ -433,6 +511,15 @@ uvaTrans = mapply(function (x,y) list(
   green = mutperiodData$rawNucleosomeCountsTables[[paste0("Dm_UVA_",y,"_",rep,"_GREEN_domain_nuc-group_raw")]],
   red = mutperiodData$rawNucleosomeCountsTables[[paste0("Dm_UVA_",y,"_",rep,"_RED_domain_nuc-group_raw")]],
   yellow = mutperiodData$rawNucleosomeCountsTables[[paste0("Dm_UVA_",y,"_",rep,"_YELLOW_domain_nuc-group_raw")]]
+), list(min0=NULL,min10=NULL,min20=NULL,min30=NULL), list("0min","10min","20min","30min"), SIMPLIFY = FALSE)
+
+uvaTransNormalized = mapply(function (x,y) list(
+  all = mutperiodData$normalizedNucleosomeCountsTables[[paste0("Dm_UVA_",y,"_",rep,"_custom_context_nuc-group_normalized")]],
+  black = mutperiodData$normalizedNucleosomeCountsTables[[paste0("Dm_UVA_",y,"_",rep,"_BLACK_domain_custom_context_nuc-group_normalized")]],
+  blue = mutperiodData$normalizedNucleosomeCountsTables[[paste0("Dm_UVA_",y,"_",rep,"_BLUE_domain_custom_context_nuc-group_normalized")]],
+  green = mutperiodData$normalizedNucleosomeCountsTables[[paste0("Dm_UVA_",y,"_",rep,"_GREEN_domain_custom_context_nuc-group_normalized")]],
+  red = mutperiodData$normalizedNucleosomeCountsTables[[paste0("Dm_UVA_",y,"_",rep,"_RED_domain_custom_context_nuc-group_normalized")]],
+  yellow = mutperiodData$normalizedNucleosomeCountsTables[[paste0("Dm_UVA_",y,"_",rep,"_YELLOW_domain_custom_context_nuc-group_normalized")]]
 ), list(min0=NULL,min10=NULL,min20=NULL,min30=NULL), list("0min","10min","20min","30min"), SIMPLIFY = FALSE)
 
 noUVA30minTrans = list(
@@ -462,6 +549,17 @@ uvaTransLombResults = lapply(uvaTransLombResults, function(x) {
   }))
 })
 
+uvaTransNormalizedLombResults = lapply(uvaTransNormalized, function(x){
+  lapply(x, function(y) getLombResult(y, TRANSLATIONAL, countsColumnName = "Alternative_Normalized_Both_Strands"))
+})
+uvaTransNormalizedLombResults = lapply(uvaTransNormalizedLombResults, function(x) {
+  rbindlist(lapply(seq_along(x), function(i){
+    data.table(Color_Domain = names(x)[i], 
+               Periods = x[[i]]$scanned,
+               Power = x[[i]]$power)
+  }))
+})
+
 noUVA30minTransLombResults = lapply(noUVA30minTrans, function(x){getLombResult(x, TRANSLATIONAL)})
 noUVA30minTransLombResults = rbindlist(lapply(seq_along(noUVA30minTransLombResults), 
                                   function(i){data.table(Color_Domain = names(noUVA30minTransLombResults)[i], 
@@ -469,13 +567,49 @@ noUVA30minTransLombResults = rbindlist(lapply(seq_along(noUVA30minTransLombResul
                                                          Power = noUVA30minTransLombResults[[i]]$power)}))
 
 
+noUVRotLombResults = lapply(noUVTrans, function(x){getLombResult(x, ROTATIONAL)})
+noUVRotLombResults = rbindlist(lapply(seq_along(noUVRotLombResults), 
+                                  function(i){data.table(Color_Domain = names(noUVRotLombResults)[i], 
+                                                         Periods = noUVRotLombResults[[i]]$scanned,
+                                                         Power = noUVRotLombResults[[i]]$power)}))
+
+uvaRotLombResults = lapply(uvaTrans, function(x){
+  lapply(x, function(y) getLombResult(y, ROTATIONAL))
+})
+uvaRotLombResults = lapply(uvaRotLombResults, function(x) {
+  rbindlist(lapply(seq_along(x), function(i){
+    data.table(Color_Domain = names(x)[i], 
+               Periods = x[[i]]$scanned,
+               Power = x[[i]]$power)
+  }))
+})
+
+uvaRotNormalizedLombResults = lapply(uvaTransNormalized, function(x){
+  lapply(x, function(y) getLombResult(y, ROTATIONAL, countsColumnName = "Alternative_Normalized_Both_Strands"))
+})
+uvaRotNormalizedLombResults = lapply(uvaRotNormalizedLombResults, function(x) {
+  rbindlist(lapply(seq_along(x), function(i){
+    data.table(Color_Domain = names(x)[i], 
+               Periods = x[[i]]$scanned,
+               Power = x[[i]]$power)
+  }))
+})
+
+noUVA30minRotLombResults = lapply(noUVA30minTrans, function(x){getLombResult(x, ROTATIONAL)})
+noUVA30minRotLombResults = rbindlist(lapply(seq_along(noUVA30minRotLombResults), 
+                                  function(i){data.table(Color_Domain = names(noUVA30minRotLombResults)[i], 
+                                                         Periods = noUVA30minRotLombResults[[i]]$scanned,
+                                                         Power = noUVA30minRotLombResults[[i]]$power)}))
+
+
 # Compile bulk data for gg facet plot
 isTranslationalDataSets = grepl("nuc-group", dataSetNames, fixed = TRUE)
 isUVADataSet = grepl("Dm_UVA", dataSetNames)
 isSpecifiedRep = grepl(rep, dataSetNames)
+isNormalized = grepl("normalized", dataSetNames)
 
 # Gets all data for uva data sets with timepoint and domain columns.
-bulkTransUVA = rbindlist(lapply(dataSetNames[isTranslationalDataSets & isUVADataSet & isSpecifiedRep],
+bulkTransUVA = rbindlist(lapply(dataSetNames[isTranslationalDataSets & isUVADataSet & isSpecifiedRep & !isNormalized],
                                 addTimepointAndDomainInfo, 
                                 smoothCols = list("Both_Strands_Counts"),
                                 expectedTimepoints = c("0min", "10min", "20min", "30min")))
@@ -497,8 +631,14 @@ for (timepoint in unique(bulkTransUVA$Timepoint)) {
   }
 }
 
+bulkTransUVANormalized = rbindlist(lapply(dataSetNames[isTranslationalDataSets & isUVADataSet & isSpecifiedRep & isNormalized],
+                                          addTimepointAndDomainInfo, 
+                                          smoothCols = list("Alternative_Normalized_Both_Strands"),
+                                          expectedTimepoints = c("0min", "10min", "20min", "30min")))
+
+
 # Gets all data for rotational repair data sets with timepoint and domain columns.
-bulkRotUVA = rbindlist(lapply(dataSetNames[!isTranslationalDataSets & isUVADataSet & isSpecifiedRep],
+bulkRotUVA = rbindlist(lapply(dataSetNames[!isTranslationalDataSets & isUVADataSet & isSpecifiedRep & !isNormalized],
                               addTimepointAndDomainInfo,
                               expectedTimepoints = c("0min", "10min", "20min", "30min")))
 bulkRotUVA[Timepoint == "0min", Both_Strands_Scaled := Both_Strands_Counts*uvaScalingFactors$min0]
@@ -519,11 +659,67 @@ for (timepoint in unique(bulkRotUVA$Timepoint)) {
   }
 }
 
+bulkRotUVANormalized = rbindlist(lapply(dataSetNames[!isTranslationalDataSets & isUVADataSet & isSpecifiedRep & isNormalized],
+                                        addTimepointAndDomainInfo,
+                                        expectedTimepoints = c("0min", "10min", "20min", "30min")))
 ```
 
 
 Plot Lomb-Scargle periodograms.
-```{r Lomb-Scargle_periodograms, opts.label = "mutperiodData", fig.width = 7, fig.height = 5}
+```{r Lomb-Scargle_rotational_periodograms, opts.label = "mutperiodData", fig.width = 7, fig.height = 5}
+# All domains combined
+plotLombResult(noUVRotLombResults[Color_Domain == "all", .(Periods, Power)], 
+               title = "No UV Periodogram (All Nucleosomes)")
+plotLombResult(uvaRotLombResults$min0[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 0min (All Nucleosomes)")
+plotLombResult(uvaRotLombResults$min10[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 10min (All Nucleosomes)")
+plotLombResult(uvaRotLombResults$min20[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 20min (All Nucleosomes)")
+plotLombResult(uvaRotLombResults$min30[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 30min (All Nucleosomes)")
+plotLombResult(noUVA30minRotLombResults[Color_Domain == "all", .(Periods, Power)], 
+               title = "No UVA 30min (All Nucleosomes)")
+
+# Individual domains plotted together
+plotLombResult(noUVRotLombResults[Color_Domain != "all"], 
+               title = "No UV Periodogram (Color Domains)")
+plotLombResult(uvaRotLombResults$min0[Color_Domain != "all"], 
+               title = "UVA 0min (Color Domains)")
+plotLombResult(uvaRotLombResults$min10[Color_Domain != "all"], 
+               title = "UVA 10min (Color Domains)")
+plotLombResult(uvaRotLombResults$min20[Color_Domain != "all"], 
+               title = "UVA 20min (Color Domains)")
+plotLombResult(uvaRotLombResults$min30[Color_Domain != "all"], 
+               title = "UVA 30min (Color Domains)")
+plotLombResult(noUVA30minRotLombResults[Color_Domain != "all"], 
+               title = "No UVA 30min (Color Domains)")
+```
+
+```{r Lomb-Scargle_rotational_periodograms_fraction_remaining, opts.label = "mutperiodData", fig.width = 7, fig.height = 5}
+# All domains combined
+plotLombResult(uvaRotNormalizedLombResults$min0[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 0min CPD fraction (All Nucleosomes)")
+plotLombResult(uvaRotNormalizedLombResults$min10[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 10min CPD fraction (All Nucleosomes)")
+plotLombResult(uvaRotNormalizedLombResults$min20[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 20min CPD fraction (All Nucleosomes)")
+plotLombResult(uvaRotNormalizedLombResults$min30[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 30min CPD fraction (All Nucleosomes)")
+
+# Individual domains plotted together
+plotLombResult(uvaRotNormalizedLombResults$min0[Color_Domain != "all"], 
+               title = "UVA 0min CPD fraction (Color Domains)")
+plotLombResult(uvaRotNormalizedLombResults$min10[Color_Domain != "all"], 
+               title = "UVA 10min CPD fraction (Color Domains)")
+plotLombResult(uvaRotNormalizedLombResults$min20[Color_Domain != "all"], 
+               title = "UVA 20min CPD fraction (Color Domains)")
+plotLombResult(uvaRotNormalizedLombResults$min30[Color_Domain != "all"], 
+               title = "UVA 30min CPD fraction (Color Domains)")
+```
+
+
+```{r Lomb-Scargle_translational_periodograms, opts.label = "mutperiodData", fig.width = 7, fig.height = 5}
 # All domains combined
 plotLombResult(noUVTransLombResults[Color_Domain == "all", .(Periods, Power)], 
                title = "No UV Periodogram (All Nucleosomes)")
@@ -553,10 +749,32 @@ plotLombResult(noUVA30minTransLombResults[Color_Domain != "all"],
                title = "No UVA 30min (Color Domains)")
 ```
 
+```{r Lomb-Scargle_translational_periodograms_fraction_remaining, opts.label = "mutperiodData", fig.width = 7, fig.height = 5}
+# All domains combined
+plotLombResult(uvaTransNormalizedLombResults$min0[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 0min CPD fraction (All Nucleosomes)")
+plotLombResult(uvaTransNormalizedLombResults$min10[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 10min CPD fraction (All Nucleosomes)")
+plotLombResult(uvaTransNormalizedLombResults$min20[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 20min CPD fraction (All Nucleosomes)")
+plotLombResult(uvaTransNormalizedLombResults$min30[Color_Domain == "all", .(Periods, Power)], 
+               title = "UVA 30min CPD fraction (All Nucleosomes)")
+
+# Individual domains plotted together
+plotLombResult(uvaTransNormalizedLombResults$min0[Color_Domain != "all"], 
+               title = "UVA 0min CPD fraction (Color Domains)")
+plotLombResult(uvaTransNormalizedLombResults$min10[Color_Domain != "all"], 
+               title = "UVA 10min CPD fraction (Color Domains)")
+plotLombResult(uvaTransNormalizedLombResults$min20[Color_Domain != "all"], 
+               title = "UVA 20min CPD fraction (Color Domains)")
+plotLombResult(uvaTransNormalizedLombResults$min30[Color_Domain != "all"], 
+               title = "UVA 30min CPD fraction (Color Domains)")
+```
+
 
 Genome-wide rotational nucleosome patterns
 ```{r Genome-wide_rotational_periodicities, opts.label = "mutperiodData", fig.width = 9, fig.height = 5}
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_30linker+_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_30linker+_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
 plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_UVA_0min_",rep,"_30linker+_raw")]],
@@ -576,29 +794,49 @@ plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UVA_30min_rep1_30linker
                 title = "No UVA 30min", ylim = NULL, yAxisLabel = "CPDs (Scaled)", dataCol = "Both_Strands_Counts")
 ```
 
+```{r Genome-wide_rotational_periodicities_fraction_remaining, opts.label = "mutperiodData", fig.width = 9, fig.height = 5}
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_UVA_0min_",rep,"_custom_context_30linker+_normalized")]],
+                                     dataCol = "Alternative_Normalized_Both_Strands"),
+                title = "UVA 0min", ylim = c(0,1), yAxisLabel = "CPD Fraction Remaining", dataCol = "Alternative_Normalized_Both_Strands")
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_UVA_10min_",rep,"_custom_context_30linker+_normalized")]],
+                                     dataCol = "Alternative_Normalized_Both_Strands"),
+                title = "UVA 10min", ylim = c(0,1), yAxisLabel = "CPD Fraction Remaining", dataCol = "Alternative_Normalized_Both_Strands")
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_UVA_20min_",rep,"_custom_context_30linker+_normalized")]],
+                                     dataCol = "Alternative_Normalized_Both_Strands"),
+                title = "UVA 20min", ylim = c(0,1), yAxisLabel = "CPD Fraction Remaining", dataCol = "Alternative_Normalized_Both_Strands")
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_UVA_30min_",rep,"_custom_context_30linker+_normalized")]],
+                                     dataCol = "Alternative_Normalized_Both_Strands"),
+                title = "UVA 30min", ylim = c(0,1), yAxisLabel = "CPD Fraction Remaining", dataCol = "Alternative_Normalized_Both_Strands")
+```
 
 Color domain rotational patterns
 ```{r No_UV_color_domain_rotational_periodicities, opts.label = "mutperiodData", fig.width = 9, fig.height = 5}
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_BLACK_domain_30linker+_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_BLACK_domain_30linker+_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV BLACK", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_BLUE_domain_30linker+_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_BLUE_domain_30linker+_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV BLUE", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_GREEN_domain_30linker+_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_GREEN_domain_30linker+_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV GREEN", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_RED_domain_30linker+_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_RED_domain_30linker+_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV RED", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_YELLOW_domain_30linker+_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_YELLOW_domain_30linker+_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV YELLOW", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
 ```
 
+
 ```{r UVA_color_domain_rotational_periodicities, fig.width = 12, fig.height = 5, opts.label = "mutperiodData"}
 plotBulkCountsData(bulkRotUVA, dataCol = "Both_Strands_Normalized", yAxisLabel = "Relative Damage",
                    expectedTimepoints = c("0min", "10min", "20min", "30min"))
+```
+
+```{r UVA_color_domain_rotational_periodicities_fraction_remaining, fig.width = 12, fig.height = 5, opts.label = "mutperiodData"}
+plotBulkCountsData(bulkRotUVANormalized, dataCol = "Alternative_Normalized_Both_Strands", yAxisLabel = "CPD Fraction Remaining",
+                   ylim = c(-0.1,1.1), expectedTimepoints = c("0min", "10min", "20min", "30min"))
 ```
 
 
@@ -622,7 +860,7 @@ plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UVA_30min_rep1_YELLOW_d
 
 Genome-wide translational nucleosome patterns
 ```{r repair_and_damage_translational_data, opts.label = "mutperiodData", fig.width = 9, fig.height = 5}
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_nuc-group_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_nuc-group_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
 plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_UVA_0min_",rep,"_nuc-group_raw")]],
@@ -642,23 +880,37 @@ plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UVA_30min_rep1_nuc-grou
                 title = "No UVA 30min", ylim = NULL, yAxisLabel = "CPDs (Scaled)", dataCol = "Both_Strands_Counts")
 ```
 
+```{r repair_and_damage_translational_data_fraction_remaining, opts.label = "mutperiodData", fig.width = 9, fig.height = 5}
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_UVA_0min_",rep,"_custom_context_nuc-group_normalized")]],
+                                     dataCol = "Alternative_Normalized_Both_Strands"),
+                title = "UVA 0min", ylim = c(0,1), yAxisLabel = "CPD Fraction Remaining", dataCol = "Alternative_Normalized_Both_Strands")
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_UVA_10min_",rep,"_custom_context_nuc-group_normalized")]],
+                                     dataCol = "Alternative_Normalized_Both_Strands"),
+                title = "UVA 10min", ylim = c(0,1), yAxisLabel = "CPD Fraction Remaining", dataCol = "Alternative_Normalized_Both_Strands")
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_UVA_20min_",rep,"_custom_context_nuc-group_normalized")]],
+                                     dataCol = "Alternative_Normalized_Both_Strands"),
+                title = "UVA 20min", ylim = c(0,1), yAxisLabel = "CPD Fraction Remaining", dataCol = "Alternative_Normalized_Both_Strands")
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_UVA_30min_",rep,"_custom_context_nuc-group_normalized")]],
+                                     dataCol = "Alternative_Normalized_Both_Strands"),
+                title = "UVA 30min", ylim = c(0,1), yAxisLabel = "CPD Fraction Remaining", dataCol = "Alternative_Normalized_Both_Strands")
+```
 
 
 Color domain translational patterns
 ```{r No_UV_color_domain_translational_periodicities, opts.label = "mutperiodData", fig.width = 9, fig.height = 5}
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_BLACK_domain_nuc-group_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_BLACK_domain_nuc-group_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV BLACK", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_BLUE_domain_nuc-group_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_BLUE_domain_nuc-group_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV BLUE", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_GREEN_domain_nuc-group_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_GREEN_domain_nuc-group_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV GREEN", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_RED_domain_nuc-group_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_RED_domain_nuc-group_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV RED", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
-plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_YELLOW_domain_nuc-group_raw`,
+plotPeriodicity(parsePeriodicityData(dataSetNames[[paste0("Dm_no_UV_",rep,"_YELLOW_domain_nuc-group_raw")]],
                                      dataCol = "Both_Strands_Counts"),
                 title = "No UV YELLOW", ylim = NULL, yAxisLabel = "CPDs", dataCol = "Both_Strands_Counts")
 ```
@@ -667,6 +919,11 @@ plotPeriodicity(parsePeriodicityData(dataSetNames$`Dm_no_UV_rep1_YELLOW_domain_n
 ```{r UVA_color_domain_translational_periodicities, fig.width = 12, fig.height = 5, opts.label = "mutperiodData"}
 plotBulkCountsData(bulkTransUVA, dataCol = "Both_Strands_Normalized", yAxisLabel = "Relative Damage",
                    expectedTimepoints = c("0min", "10min", "20min", "30min"))
+```
+
+```{r UVA_color_domain_translational_periodicities_fraction_remaining, fig.width = 12, fig.height = 5, opts.label = "mutperiodData"}
+plotBulkCountsData(bulkTransUVANormalized, dataCol = "Alternative_Normalized_Both_Strands", yAxisLabel = "Relative Damage",
+                   ylim = c(-0.1,1.1), expectedTimepoints = c("0min", "10min", "20min", "30min"))
 ```
 
 

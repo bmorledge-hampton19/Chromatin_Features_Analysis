@@ -75,6 +75,8 @@ parseBinData = function(binnedCountsFilePath, binnedColorDomainsFilePath = NA,
 
     # Normalize and scale!
     rawToBackgroundRatio = binnedCountsTable$Feature_Counts / binnedCountsTable$Background_Feature_Counts
+    binnedCountsTable[, Scaled_Feature_Counts := Feature_Counts * scalingFactor]
+    binnedCountsTable[, Raw_To_Background_Ratio := rawToBackgroundRatio]
     binnedCountsTable[, Scaled_Raw_To_Background_Ratio := rawToBackgroundRatio * scalingFactor]
     binnedCountsTable[, Log_Ratio := log(Scaled_Raw_To_Background_Ratio,2)]
   } else if (!is.null(scalingFactor)) {
